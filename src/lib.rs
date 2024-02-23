@@ -67,7 +67,6 @@
 //! Support for `u128` and `i128` can be enabled on nightly Rust through the `i128` Cargo feature.
 
 #![no_std]
-
 #![cfg_attr(feature = "i128", feature(i128_type))]
 
 pub extern crate typenum;
