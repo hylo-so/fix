@@ -2,7 +2,7 @@
 pub mod binary {
     use typenum::U2;
 
-    use Fix;
+    use crate::Fix;
 
     pub type UFix8<Exp> = Fix<u8, U2, Exp>;
     pub type UFix16<Exp> = Fix<u16, U2, Exp>;
@@ -27,7 +27,7 @@ pub mod binary {
 pub mod decimal {
     use typenum::U10;
 
-    use Fix;
+    use crate::Fix;
 
     pub type UFix8<Exp> = Fix<u8, U10, Exp>;
     pub type UFix16<Exp> = Fix<u16, U10, Exp>;
@@ -54,7 +54,7 @@ pub mod si {
     use typenum::{P1, P2, P3, P6, P9, P12, P15, P18, P21, P24};
     use typenum::{U10, Z0};
 
-    use Fix;
+    use crate::Fix;
 
     /** 10<sup>-24</sup> */ pub type Yocto<Bits> = Fix<Bits, U10, N24>;
     /** 10<sup>-21</sup> */ pub type Zepto<Bits> = Fix<Bits, U10, N21>;
@@ -86,7 +86,7 @@ pub mod iec {
     use typenum::{P10, P20, P30, P40, P50, P60, P70, P80};
     use typenum::{U2, Z0};
 
-    use Fix;
+    use crate::Fix;
 
     /** 2<sup>0</sup> */ pub type Unit<Bits> = Fix<Bits, U2, Z0>;
 
