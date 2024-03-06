@@ -67,9 +67,9 @@
 //! Support for `u128` and `i128` can be enabled on nightly Rust through the `i128` Cargo feature.
 
 #![no_std]
-
 #![cfg_attr(feature = "i128", feature(i128_type))]
 
+pub extern crate num_traits;
 pub extern crate typenum;
 
 /// Type aliases.
@@ -82,12 +82,12 @@ use core::marker::PhantomData;
 use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
+use borsh::{BorshDeserialize, BorshSerialize};
+use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 use typenum::consts::Z0;
 use typenum::marker_traits::{Bit, Integer, Unsigned};
 use typenum::operator_aliases::{AbsVal, Diff, Le, Sum};
 use typenum::type_operators::{Abs, IsLess};
-
-use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 
 /// Fixed-point number representing _Bits × Base <sup>Exp</sup>_.
 ///
@@ -116,6 +116,7 @@ use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 /// - _(x B<sup>E</sup>) × y = (x × y) B<sup>E</sup>_
 /// - _(x B<sup>E</sup>) ÷ y = (x ÷ y) B<sup>E</sup>_
 /// - _(x B<sup>E</sup>) % y = (x % y) B<sup>E</sup>_
+#[derive(BorshDeserialize, BorshSerialize)]
 pub struct Fix<Bits, Base, Exp> {
     /// The underlying integer.
     pub bits: Bits,
