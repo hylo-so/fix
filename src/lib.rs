@@ -303,6 +303,12 @@ impl Pow for u64 {
         self.pow(exp)
     }
 }
+impl Pow for u128 {
+    #[inline]
+    fn pow(self, exp: u32) -> Self {
+        self.pow(exp)
+    }
+}
 impl Pow for usize {
     #[inline]
     fn pow(self, exp: u32) -> Self {
@@ -333,6 +339,12 @@ impl Pow for i64 {
     fn pow(self, exp: u32) -> Self {
         self.pow(exp)
     }
+}
+impl Pow for i128 {
+  #[inline]
+  fn pow(self, exp: u32) -> Self {
+    self.pow(exp)
+  }
 }
 impl Pow for isize {
     #[inline]
