@@ -82,7 +82,7 @@ use core::marker::PhantomData;
 use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
-use anchor_lang::prelude::{AnchorSerialize, AnchorDeserialize, borsh};
+use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize};
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 use typenum::consts::Z0;
 use typenum::marker_traits::{Bit, Integer, Unsigned};
@@ -174,6 +174,25 @@ impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
             Fix::new(self.bits * ratio)
         }
     }
+
+    /// Converts the underlying bits to another type.
+    /// This operation can lose precision (e.g. u128 -> u8).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fix::aliases::si::Milli;
+    /// let one = Milli::new(16899u128);
+    /// let mapped = one.map_bits(|b| b as u64);
+    /// assert_eq!(mapped, Milli::new(16899u64));
+    /// ```
+    ///
+    pub fn map_bits<ToBits, F>(self, f: F) -> Fix<ToBits, Base, Exp>
+    where
+        F: Fn(Bits) -> ToBits,
+    {
+        Fix::<ToBits, Base, Exp>::new(f(self.bits))
+    }
 }
 
 /// Conversion from type-level [`Unsigned`] integers.
@@ -209,6 +228,11 @@ impl FromUnsigned for u64 {
         U::to_u64()
     }
 }
+impl FromUnsigned for u128 {
+    fn from_unsigned<U: Unsigned>() -> Self {
+        U::to_u128()
+    }
+}
 impl FromUnsigned for usize {
     fn from_unsigned<U: Unsigned>() -> Self {
         U::to_usize()
@@ -233,6 +257,11 @@ impl FromUnsigned for i32 {
 impl FromUnsigned for i64 {
     fn from_unsigned<U: Unsigned>() -> Self {
         U::to_i64()
+    }
+}
+impl FromUnsigned for i128 {
+    fn from_unsigned<U: Unsigned>() -> Self {
+        U::to_i128()
     }
 }
 impl FromUnsigned for isize {
@@ -598,7 +627,7 @@ where
     }
 }
 
-/// Adapts `CheckedDiv` to this library with compputed `Output` type.
+/// Adapts `CheckedDiv` to this library with computed `Output` type.
 pub trait CheckedDivFix<Rhs> {
     type Output;
     fn checked_div(&self, v: &Rhs) -> Option<Self::Output>;
@@ -617,8 +646,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::aliases::si::{Deca, Kilo, Milli, Unit};
-    use crate::{CheckedAdd, CheckedDiv, CheckedDivFix, CheckedMul, CheckedMulFix, CheckedSub};
+    use crate::aliases::si::{Kilo, Milli, Unit};
+    use crate::{CheckedAdd, CheckedDivFix, CheckedMulFix, CheckedSub};
 
     #[test]
     fn convert_milli_to_kilo() {
@@ -777,5 +806,19 @@ mod tests {
         let hundred = Kilo::new(100);
         let five = Kilo::new(5);
         assert_eq!(hundred.checked_div(&five), Some(Unit::new(20)))
+    }
+
+    #[test]
+    fn map_bits_lossless() {
+        let one = Milli::new(1000u128);
+        let mapped = one.map_bits(|b| b as u64);
+        assert_eq!(mapped, Milli::new(1000u64));
+    }
+
+    #[test]
+    fn map_bits_lossy() {
+        let one = Milli::new(1699u64);
+        let mapped = one.map_bits(|b| b as u8);
+        assert_eq!(mapped, Milli::new(163u8));
     }
 }
