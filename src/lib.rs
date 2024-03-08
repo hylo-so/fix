@@ -112,7 +112,7 @@ use typenum::type_operators::{Abs, IsLess};
 /// - _(x B<sup>E</sup>) % y = (x % y) B<sup>E</sup>_
 #[cfg_attr(
     feature = "anchor",
-    derive(AnchorSerialize, AnchorDeserialize)
+    derive(anchor::prelude::AnchorSerialize, anchor::prelude::AnchorDeserialize)
 )]
 pub struct Fix<Bits, Base, Exp> {
     /// The underlying integer.
