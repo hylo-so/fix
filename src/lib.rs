@@ -77,7 +77,6 @@ use core::marker::PhantomData;
 use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
-use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize};
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 use typenum::consts::Z0;
 use typenum::marker_traits::{Bit, Integer, Unsigned};
@@ -111,7 +110,10 @@ use typenum::type_operators::{Abs, IsLess};
 /// - _(x B<sup>E</sup>) × y = (x × y) B<sup>E</sup>_
 /// - _(x B<sup>E</sup>) ÷ y = (x ÷ y) B<sup>E</sup>_
 /// - _(x B<sup>E</sup>) % y = (x % y) B<sup>E</sup>_
-#[derive(AnchorSerialize, AnchorDeserialize)]
+#[cfg_attr(
+    feature = "borsh",
+    derive(borsh::BorshSerialize, borsh::BorshDeserialize)
+)]
 pub struct Fix<Bits, Base, Exp> {
     /// The underlying integer.
     pub bits: Bits,
