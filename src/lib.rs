@@ -61,15 +61,10 @@
 //! # `no_std`
 //!
 //! This crate is `no_std`.
-//!
-//! # `i128` support
-//!
-//! Support for `u128` and `i128` can be enabled on nightly Rust through the `i128` Cargo feature.
 
 #![no_std]
 
-#![cfg_attr(feature = "i128", feature(i128_type))]
-
+pub extern crate num_traits;
 pub extern crate typenum;
 
 /// Type aliases.
@@ -82,12 +77,13 @@ use core::marker::PhantomData;
 use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
+#[cfg(feature = "anchor")]
+use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize};
+use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 use typenum::consts::Z0;
 use typenum::marker_traits::{Bit, Integer, Unsigned};
 use typenum::operator_aliases::{AbsVal, Diff, Le, Sum};
 use typenum::type_operators::{Abs, IsLess};
-
-use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 
 /// Fixed-point number representing _Bits × Base <sup>Exp</sup>_.
 ///
@@ -116,6 +112,7 @@ use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 /// - _(x B<sup>E</sup>) × y = (x × y) B<sup>E</sup>_
 /// - _(x B<sup>E</sup>) ÷ y = (x ÷ y) B<sup>E</sup>_
 /// - _(x B<sup>E</sup>) % y = (x % y) B<sup>E</sup>_
+#[cfg_attr(feature = "anchor", derive(AnchorSerialize, AnchorDeserialize))]
 pub struct Fix<Bits, Base, Exp> {
     /// The underlying integer.
     pub bits: Bits,
@@ -173,6 +170,25 @@ impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
             Fix::new(self.bits * ratio)
         }
     }
+
+    /// Converts the underlying bits to another type.
+    /// This operation can lose precision (e.g. u128 -> u8).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fix::aliases::si::Milli;
+    /// let one = Milli::new(16899u128);
+    /// let mapped = one.map_bits(|b| b as u64);
+    /// assert_eq!(mapped, Milli::new(16899u64));
+    /// ```
+    ///
+    pub fn map_bits<ToBits, F>(self, f: F) -> Fix<ToBits, Base, Exp>
+    where
+        F: Fn(Bits) -> ToBits,
+    {
+        Fix::<ToBits, Base, Exp>::new(f(self.bits))
+    }
 }
 
 /// Conversion from type-level [`Unsigned`] integers.
@@ -208,6 +224,11 @@ impl FromUnsigned for u64 {
         U::to_u64()
     }
 }
+impl FromUnsigned for u128 {
+    fn from_unsigned<U: Unsigned>() -> Self {
+        U::to_u128()
+    }
+}
 impl FromUnsigned for usize {
     fn from_unsigned<U: Unsigned>() -> Self {
         U::to_usize()
@@ -234,6 +255,11 @@ impl FromUnsigned for i64 {
         U::to_i64()
     }
 }
+impl FromUnsigned for i128 {
+    fn from_unsigned<U: Unsigned>() -> Self {
+        U::to_i128()
+    }
+}
 impl FromUnsigned for isize {
     fn from_unsigned<U: Unsigned>() -> Self {
         U::to_isize()
@@ -255,24 +281,35 @@ impl Pow for u8 {
         self.pow(exp)
     }
 }
+
 impl Pow for u16 {
     #[inline]
     fn pow(self, exp: u32) -> Self {
         self.pow(exp)
     }
 }
+
 impl Pow for u32 {
     #[inline]
     fn pow(self, exp: u32) -> Self {
         self.pow(exp)
     }
 }
+
 impl Pow for u64 {
     #[inline]
     fn pow(self, exp: u32) -> Self {
         self.pow(exp)
     }
 }
+
+impl Pow for u128 {
+    #[inline]
+    fn pow(self, exp: u32) -> Self {
+        self.pow(exp)
+    }
+}
+
 impl Pow for usize {
     #[inline]
     fn pow(self, exp: u32) -> Self {
@@ -286,55 +323,39 @@ impl Pow for i8 {
         self.pow(exp)
     }
 }
+
 impl Pow for i16 {
     #[inline]
     fn pow(self, exp: u32) -> Self {
         self.pow(exp)
     }
 }
+
 impl Pow for i32 {
     #[inline]
     fn pow(self, exp: u32) -> Self {
         self.pow(exp)
     }
 }
+
 impl Pow for i64 {
     #[inline]
     fn pow(self, exp: u32) -> Self {
         self.pow(exp)
     }
 }
-impl Pow for isize {
+
+impl Pow for i128 {
     #[inline]
     fn pow(self, exp: u32) -> Self {
         self.pow(exp)
     }
 }
 
-#[cfg(feature = "i128")]
-mod __i128 {
-    use super::*;
-    impl FromUnsigned for u128 {
-        fn from_unsigned<U: Unsigned>() -> Self {
-            U::to_u128()
-        }
-    }
-    impl FromUnsigned for i128 {
-        fn from_unsigned<U: Unsigned>() -> Self {
-            U::to_i128()
-        }
-    }
-    impl Pow for u128 {
-        #[inline]
-        fn pow(self, exp: u32) -> Self {
-            self.pow(exp)
-        }
-    }
-    impl Pow for i128 {
-        #[inline]
-        fn pow(self, exp: u32) -> Self {
-            self.pow(exp)
-        }
+impl Pow for isize {
+    #[inline]
+    fn pow(self, exp: u32) -> Self {
+        self.pow(exp)
     }
 }
 
@@ -597,7 +618,7 @@ where
     }
 }
 
-/// Adapts `CheckedDiv` to this library with compputed `Output` type.
+/// Adapts `CheckedDiv` to this library with computed `Output` type.
 pub trait CheckedDivFix<Rhs> {
     type Output;
     fn checked_div(&self, v: &Rhs) -> Option<Self::Output>;
@@ -616,8 +637,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::aliases::si::{Deca, Kilo, Milli, Unit};
-    use crate::{CheckedAdd, CheckedDiv, CheckedDivFix, CheckedMul, CheckedMulFix, CheckedSub};
+    use crate::aliases::si::{Kilo, Milli, Unit};
+    use crate::{CheckedAdd, CheckedDivFix, CheckedMulFix, CheckedSub};
 
     #[test]
     fn convert_milli_to_kilo() {
@@ -776,5 +797,19 @@ mod tests {
         let hundred = Kilo::new(100);
         let five = Kilo::new(5);
         assert_eq!(hundred.checked_div(&five), Some(Unit::new(20)))
+    }
+
+    #[test]
+    fn map_bits_lossless() {
+        let one = Milli::new(1000u128);
+        let mapped = one.map_bits(|b| b as u64);
+        assert_eq!(mapped, Milli::new(1000u64));
+    }
+
+    #[test]
+    fn map_bits_lossy() {
+        let one = Milli::new(1699u64);
+        let mapped = one.map_bits(|b| b as u8);
+        assert_eq!(mapped, Milli::new(163u8));
     }
 }
