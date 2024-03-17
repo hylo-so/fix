@@ -7,7 +7,7 @@ authors = ["0xPlish <plish@hylo.so>", "Curtis McEnroe <programble@gmail.com>"]
 repository = "https://github.com/hylo-so/fix"
 license = "ISC"
 readme = "README.md"
-keywords = ["math", "fixed", "point", "fixpoint", "basis", "number", "integer", "arithmetic", "solana"]
+keywords = ["math", "fixed", "fixpoint", "anchor", "solana"]
 categories = ["data-structures"]
 
 [lib]
