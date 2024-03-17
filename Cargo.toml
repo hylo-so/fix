@@ -1,17 +1,14 @@
 [package]
-name = "fix"
-version = "0.1.1"
+name = "hylo-fix"
+version = "0.1.0"
 edition = "2021"
 description = "Fixed-point number types"
-authors = ["Curtis McEnroe <programble@gmail.com>", "0xPlish <plish@hylo.so>"]
-repository = "https://github.com/programble/fix"
+authors = ["0xPlish <plish@hylo.so>", "Curtis McEnroe <programble@gmail.com>"]
+repository = "https://github.com/hylo-so/fix"
 license = "ISC"
 readme = "README.md"
-keywords = ["fixed", "point", "number", "integer", "arithmetic"]
+keywords = ["math", "fixed", "point", "fixpoint", "basis", "number", "integer", "arithmetic", "solana"]
 categories = ["data-structures"]
-
-[badges]
-travis-ci = { repository = "programble/fix" }
 
 [features]
 i128 = ["typenum/i128"]
