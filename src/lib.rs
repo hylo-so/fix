@@ -77,7 +77,7 @@ use core::marker::PhantomData;
 use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
-#[cfg_attr(feature = "anchor", allow(unused_imports))]
+#[cfg(feature = "anchor")]
 use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize};
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 use typenum::consts::Z0;
