@@ -1,6 +1,6 @@
 [package]
 name = "hylo-fix"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Fixed-point number types"
 authors = ["0xPlish <plish@hylo.so>", "Curtis McEnroe <programble@gmail.com>"]
