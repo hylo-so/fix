@@ -6,7 +6,7 @@
 [crate-badge]: https://img.shields.io/crates/v/hylo-fix.svg
 [crate]: https://crates.io/crates/hylo-fix
 
-Fixed-point number types with Solana Anhchor support.
+Fixed-point number types with Solana Anchor support.
 
 ## [Documentation]
 
