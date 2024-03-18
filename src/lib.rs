@@ -171,23 +171,41 @@ impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
         }
     }
 
-    /// Converts the underlying bits to another type.
-    /// This operation can lose precision (e.g. u128 -> u8).
+    /// Converts the underlying bits to a wider type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fix::aliases::si::Milli;
+    /// let one = Milli::new(16899u64);
+    /// let mapped = one.widen::<u128>();
+    /// assert_eq!(mapped, Milli::new(16899u128));
+    /// ```
+    ///
+    pub fn widen<ToBits>(self) -> Fix<ToBits, Base, Exp>
+    where
+        ToBits: From<Bits>,
+    {
+        Fix::<ToBits, Base, Exp>::new(self.bits.into())
+    }
+
+    /// Attempts to converts underlying bits to a narrower type.
+    /// Returns `None` if conversion fails.
     ///
     /// # Examples
     ///
     /// ```
     /// use fix::aliases::si::Milli;
     /// let one = Milli::new(16899u128);
-    /// let mapped = one.map_bits(|b| b as u64);
-    /// assert_eq!(mapped, Milli::new(16899u64));
+    /// let mapped = one.narrow::<u64>();
+    /// assert_eq!(mapped, Some(Milli::new(16899u64)));
     /// ```
     ///
-    pub fn map_bits<ToBits, F>(self, f: F) -> Fix<ToBits, Base, Exp>
+    pub fn narrow<ToBits>(self) -> Option<Fix<ToBits, Base, Exp>>
     where
-        F: Fn(Bits) -> ToBits,
+        ToBits: TryFrom<Bits>,
     {
-        Fix::<ToBits, Base, Exp>::new(f(self.bits))
+        self.bits.try_into().ok().map(Fix::<ToBits, Base, Exp>::new)
     }
 }
 
@@ -800,16 +818,23 @@ mod tests {
     }
 
     #[test]
-    fn map_bits_lossless() {
+    fn narrow_succeeds() {
         let one = Milli::new(1000u128);
-        let mapped = one.map_bits(|b| b as u64);
-        assert_eq!(mapped, Milli::new(1000u64));
+        let mapped = one.narrow::<u64>();
+        assert_eq!(mapped, Some(Milli::new(1000u64)));
     }
 
     #[test]
-    fn map_bits_lossy() {
+    fn narrow_fails() {
         let one = Milli::new(1699u64);
-        let mapped = one.map_bits(|b| b as u8);
-        assert_eq!(mapped, Milli::new(163u8));
+        let mapped = one.narrow::<u8>();
+        assert_eq!(mapped, None);
+    }
+
+    #[test]
+    fn widen_succeeds() {
+        let one = Milli::new(1340191u64);
+        let mapped = one.widen::<u128>();
+        assert_eq!(mapped, Milli::new(1340191u128));
     }
 }
