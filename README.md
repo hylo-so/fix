@@ -1,15 +1,13 @@
 # Fix
 
-[![Crate version][crate-badge]][crate]
-[![Build status][travis-badge]][travis]
+[![Crate Version][crate-badge]][crate]
+![Build Status](https://github.com/hylo-so/fix/actions/workflows/pr.yml/badge.svg)
 
-[crate-badge]: https://img.shields.io/crates/v/fix.svg
-[travis-badge]: https://img.shields.io/travis/programble/fix/master.svg
-[crate]: https://crates.io/crates/fix
-[travis]: https://travis-ci.org/programble/fix
+[crate-badge]: https://img.shields.io/crates/v/hylo-fix.svg
+[crate]: https://crates.io/crates/hylo-fix
 
-Fixed-point number types.
+Fixed-point number types with Solana Anhchor support.
 
 ## [Documentation]
 
-[Documentation]: https://docs.rs/fix
+[Documentation]: https://docs.rs/hylo-fix
