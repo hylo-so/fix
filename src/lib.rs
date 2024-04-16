@@ -898,7 +898,7 @@ mod tests {
         let start = Milli::new(69_693u64);
         let mul = Milli::new(5_192u64);
         let div = Milli::new(190u64);
-        assert_eq!(start.mul_div_floor(mul, div), Some(Milli::new(1903719u64)));
+        assert_eq!(start.mul_div_floor(mul, div), Some(Milli::new(1904452u64)));
     }
 
     #[test]
