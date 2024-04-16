@@ -133,6 +133,14 @@ macro_rules! fix_init_space {
 
 #[cfg(feature = "anchor")]
 fix_init_space!(u8);
+#[cfg(feature = "anchor")]
+fix_init_space!(u16);
+#[cfg(feature = "anchor")]
+fix_init_space!(u32);
+#[cfg(feature = "anchor")]
+fix_init_space!(u64);
+#[cfg(feature = "anchor")]
+fix_init_space!(u128);
 
 impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
     /// Creates a number.
