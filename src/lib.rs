@@ -123,12 +123,16 @@ pub struct Fix<Bits, Base, Exp> {
 }
 
 #[cfg(feature = "anchor")]
-impl<Bits, Base, Exp> Space for Fix<Bits, Base, Exp>
-where
-    Bits: Space,
-{
-    const INIT_SPACE: usize = Bits::INIT_SPACE;
+macro_rules! fix_init_space {
+  ($ty:ident) => {
+    impl<Base, Exp> Space for Fix<$ty, Base, Exp> {
+      const INIT_SPACE: usize = core::mem::size_of::<$ty>();
+    }
+  }
 }
+
+#[cfg(feature = "anchor")]
+fix_init_space!(u8);
 
 impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
     /// Creates a number.
