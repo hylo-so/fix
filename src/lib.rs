@@ -64,6 +64,7 @@
 
 #![no_std]
 
+pub extern crate muldiv;
 pub extern crate num_traits;
 pub extern crate typenum;
 
@@ -78,7 +79,8 @@ use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
 #[cfg(feature = "anchor")]
-use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize};
+use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, InitSpace};
+use muldiv::MulDiv;
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 use typenum::consts::Z0;
 use typenum::marker_traits::{Bit, Integer, Unsigned};
@@ -112,7 +114,10 @@ use typenum::type_operators::{Abs, IsLess};
 /// - _(x B<sup>E</sup>) × y = (x × y) B<sup>E</sup>_
 /// - _(x B<sup>E</sup>) ÷ y = (x ÷ y) B<sup>E</sup>_
 /// - _(x B<sup>E</sup>) % y = (x % y) B<sup>E</sup>_
-#[cfg_attr(feature = "anchor", derive(AnchorSerialize, AnchorDeserialize))]
+#[cfg_attr(
+    feature = "anchor",
+    derive(AnchorSerialize, AnchorDeserialize, InitSpace)
+)]
 pub struct Fix<Bits, Base, Exp> {
     /// The underlying integer.
     pub bits: Bits,
@@ -653,10 +658,44 @@ where
     }
 }
 
+impl<Bits, Base, LExp, RExp> MulDiv<Fix<Bits, Base, RExp>> for Fix<Bits, Base, LExp>
+where
+    Bits: MulDiv,
+{
+    type Output = Fix<<Bits as MulDiv>::Output, Base, LExp>;
+    fn mul_div_ceil(
+        self,
+        num: Fix<Bits, Base, RExp>,
+        denom: Fix<Bits, Base, RExp>,
+    ) -> Option<Self::Output> {
+        self.bits
+            .mul_div_ceil(num.bits, denom.bits)
+            .map(Self::Output::new)
+    }
+    fn mul_div_floor(
+        self,
+        num: Fix<Bits, Base, RExp>,
+        denom: Fix<Bits, Base, RExp>,
+    ) -> Option<Self::Output> {
+        self.bits
+            .mul_div_floor(num.bits, denom.bits)
+            .map(Self::Output::new)
+    }
+    fn mul_div_round(
+        self,
+        num: Fix<Bits, Base, RExp>,
+        denom: Fix<Bits, Base, RExp>,
+    ) -> Option<Self::Output> {
+        self.bits
+            .mul_div_round(num.bits, denom.bits)
+            .map(Self::Output::new)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::aliases::si::{Kilo, Milli, Unit};
-    use crate::{CheckedAdd, CheckedDivFix, CheckedMulFix, CheckedSub};
+    use crate::{CheckedAdd, CheckedDivFix, CheckedMulFix, CheckedSub, MulDiv};
 
     #[test]
     fn convert_milli_to_kilo() {
@@ -836,5 +875,53 @@ mod tests {
         let one = Milli::new(1340191u64);
         let mapped = one.widen::<u128>();
         assert_eq!(mapped, Milli::new(1340191u128));
+    }
+
+    #[test]
+    fn mul_div_ceil() {
+        let start = Milli::new(313459u64);
+        let mul = Milli::new(1200u64);
+        let div = Milli::new(2450u64);
+        assert_eq!(start.mul_div_ceil(mul, div), Some(Milli::new(153531)));
+    }
+
+    #[test]
+    fn mul_div_ceil_unit() {
+        let start = Milli::new(31345934u64);
+        let mul = Milli::new(1000u64);
+        let div = Milli::new(2000u64);
+        assert_eq!(start.mul_div_ceil(mul, div), Some(Milli::new(15672967u64)));
+    }
+
+    #[test]
+    fn mul_div_floor() {
+        let start = Milli::new(69_693u64);
+        let mul = Milli::new(5_192u64);
+        let div = Milli::new(190u64);
+        assert_eq!(start.mul_div_floor(mul, div), Some(Milli::new(1903719u64)));
+    }
+
+    #[test]
+    fn mul_div_floor_unit() {
+        let start = Milli::new(69_693u64);
+        let mul = Milli::new(1000u64);
+        let div = Milli::new(9u64);
+        assert_eq!(start.mul_div_floor(mul, div), Some(Milli::new(7743666u64)));
+    }
+
+    #[test]
+    fn mul_div_round() {
+        let start = Milli::new(1892u64);
+        let mul = Milli::new(3222u64);
+        let div = Milli::new(9999u64);
+        assert_eq!(start.mul_div_round(mul, div), Some(Milli::new(610u64)));
+    }
+
+    #[test]
+    fn mul_div_round_unit() {
+        let start = Milli::new(1892u64);
+        let mul = Milli::new(1000u64);
+        let div = Milli::new(322u64);
+        assert_eq!(start.mul_div_round(mul, div), Some(Milli::new(5876u64)));
     }
 }
