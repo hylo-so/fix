@@ -71,7 +71,6 @@ pub extern crate typenum;
 pub mod aliases;
 #[cfg(feature = "anchor")]
 pub mod anchor;
-#[cfg(feature = "anchor")]
 pub mod prelude;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
