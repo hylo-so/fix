@@ -68,8 +68,9 @@ pub extern crate muldiv;
 pub extern crate num_traits;
 pub extern crate typenum;
 
-/// Type aliases.
 pub mod aliases;
+pub mod anchor;
+pub mod prelude;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
 use core::fmt::{Debug, Error, Formatter};
@@ -79,7 +80,7 @@ use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
 #[cfg(feature = "anchor")]
-use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, Space};
+use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize};
 use muldiv::MulDiv;
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 use typenum::consts::Z0;
@@ -121,26 +122,6 @@ pub struct Fix<Bits, Base, Exp> {
 
     marker: PhantomData<(Base, Exp)>,
 }
-
-#[cfg(feature = "anchor")]
-macro_rules! fix_init_space {
-  ($ty:ident) => {
-    impl<Base, Exp> Space for Fix<$ty, Base, Exp> {
-      const INIT_SPACE: usize = core::mem::size_of::<$ty>();
-    }
-  }
-}
-
-#[cfg(feature = "anchor")]
-fix_init_space!(u8);
-#[cfg(feature = "anchor")]
-fix_init_space!(u16);
-#[cfg(feature = "anchor")]
-fix_init_space!(u32);
-#[cfg(feature = "anchor")]
-fix_init_space!(u64);
-#[cfg(feature = "anchor")]
-fix_init_space!(u128);
 
 impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
     /// Creates a number.
