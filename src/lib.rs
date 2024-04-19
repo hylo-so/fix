@@ -84,6 +84,7 @@ use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize};
 use muldiv::MulDiv;
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
+use paste::paste;
 use typenum::consts::Z0;
 use typenum::marker_traits::{Bit, Integer, Unsigned};
 use typenum::operator_aliases::{AbsVal, Diff, Le, Sum};
@@ -226,67 +227,28 @@ pub trait FromUnsigned {
         U: Unsigned;
 }
 
-impl FromUnsigned for u8 {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_u8()
-    }
-}
-impl FromUnsigned for u16 {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_u16()
-    }
-}
-impl FromUnsigned for u32 {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_u32()
-    }
-}
-impl FromUnsigned for u64 {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_u64()
-    }
-}
-impl FromUnsigned for u128 {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_u128()
-    }
-}
-impl FromUnsigned for usize {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_usize()
-    }
+macro_rules! impl_from_unsigned {
+    ($ty:ident) => {
+        impl FromUnsigned for $ty {
+            fn from_unsigned<U: Unsigned>() -> Self {
+                paste! { U::[<to_$ty>]() }
+            }
+        }
+    };
 }
 
-impl FromUnsigned for i8 {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_i8()
-    }
-}
-impl FromUnsigned for i16 {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_i16()
-    }
-}
-impl FromUnsigned for i32 {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_i32()
-    }
-}
-impl FromUnsigned for i64 {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_i64()
-    }
-}
-impl FromUnsigned for i128 {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_i128()
-    }
-}
-impl FromUnsigned for isize {
-    fn from_unsigned<U: Unsigned>() -> Self {
-        U::to_isize()
-    }
-}
+impl_from_unsigned!(u8);
+impl_from_unsigned!(u16);
+impl_from_unsigned!(u32);
+impl_from_unsigned!(u64);
+impl_from_unsigned!(u128);
+impl_from_unsigned!(usize);
+impl_from_unsigned!(i8);
+impl_from_unsigned!(i16);
+impl_from_unsigned!(i32);
+impl_from_unsigned!(i64);
+impl_from_unsigned!(i128);
+impl_from_unsigned!(isize);
 
 /// Exponentiation.
 ///
@@ -297,93 +259,34 @@ pub trait Pow {
     fn pow(self, exp: u32) -> Self;
 }
 
-impl Pow for u8 {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
+macro_rules! impl_pow {
+    ($ty:ident) => {
+        impl Pow for $ty {
+            #[inline]
+            fn pow(self, exp: u32) -> Self {
+                self.pow(exp)
+            }
+        }
+    };
 }
 
-impl Pow for u16 {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
-
-impl Pow for u32 {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
-
-impl Pow for u64 {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
-
-impl Pow for u128 {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
-
-impl Pow for usize {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
-
-impl Pow for i8 {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
-
-impl Pow for i16 {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
-
-impl Pow for i32 {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
-
-impl Pow for i64 {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
-
-impl Pow for i128 {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
-
-impl Pow for isize {
-    #[inline]
-    fn pow(self, exp: u32) -> Self {
-        self.pow(exp)
-    }
-}
+impl_pow!(u8);
+impl_pow!(u16);
+impl_pow!(u32);
+impl_pow!(u64);
+impl_pow!(u128);
+impl_pow!(usize);
+impl_pow!(i8);
+impl_pow!(i16);
+impl_pow!(i32);
+impl_pow!(i64);
+impl_pow!(i128);
+impl_pow!(isize);
 
 // The usual traits.
 
 impl<Bits, Base, Exp> Copy for Fix<Bits, Base, Exp> where Bits: Copy {}
+
 impl<Bits, Base, Exp> Clone for Fix<Bits, Base, Exp>
 where
     Bits: Clone,
@@ -936,8 +839,8 @@ mod tests {
 
     #[test]
     fn abs_diff() {
-      let start = Milli::new(u128::MIN);
-      let end = Milli::new(u128::MAX);
-      assert_eq!(start.abs_diff(&end), end);
+        let start = Milli::new(u128::MIN);
+        let end = Milli::new(u128::MAX);
+        assert_eq!(start.abs_diff(&end), end);
     }
 }
