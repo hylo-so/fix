@@ -1,13 +1,13 @@
 [package]
 name = "hylo-fix"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "Fixed-point number types"
 authors = ["0xPlish <plish@hylo.so>", "Curtis McEnroe <programble@gmail.com>"]
 repository = "https://github.com/hylo-so/fix"
 license = "ISC"
 readme = "README.md"
-keywords = ["math", "fixed", "fixpoint", "anchor", "solana"]
+keywords = ["arithmetic", "fixed-point", "crypto", "anchor", "solana"]
 categories = ["data-structures"]
 
 [lib]

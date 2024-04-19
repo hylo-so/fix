@@ -68,8 +68,10 @@ pub extern crate muldiv;
 pub extern crate num_traits;
 pub extern crate typenum;
 
-/// Type aliases.
 pub mod aliases;
+#[cfg(feature = "anchor")]
+pub mod anchor;
+pub mod prelude;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
 use core::fmt::{Debug, Error, Formatter};
@@ -79,7 +81,7 @@ use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
 #[cfg(feature = "anchor")]
-use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, Space};
+use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize};
 use muldiv::MulDiv;
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 use typenum::consts::Z0;
@@ -120,14 +122,6 @@ pub struct Fix<Bits, Base, Exp> {
     pub bits: Bits,
 
     marker: PhantomData<(Base, Exp)>,
-}
-
-#[cfg(feature = "anchor")]
-impl<Bits, Base, Exp> Space for Fix<Bits, Base, Exp>
-where
-    Bits: Space,
-{
-    const INIT_SPACE: usize = Bits::INIT_SPACE;
 }
 
 impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
@@ -629,6 +623,16 @@ where
     }
 }
 
+impl<Bits, Base, Exp> Fix<Bits, Base, Exp>
+where
+    Self: CheckedSub,
+    Bits: Copy,
+{
+    pub fn abs_diff(&self, v: &Self) -> Self {
+        self.checked_sub(v).unwrap_or_else(|| *v - *self)
+    }
+}
+
 /// Adapts `CheckedMul` concept to this library with computed `Output` type.
 pub trait CheckedMulFix<Rhs> {
     type Output;
@@ -928,5 +932,12 @@ mod tests {
         let mul = Milli::new(1000u64);
         let div = Milli::new(322u64);
         assert_eq!(start.mul_div_round(mul, div), Some(Milli::new(5876u64)));
+    }
+
+    #[test]
+    fn abs_diff() {
+      let start = Milli::new(u128::MIN);
+      let end = Milli::new(u128::MAX);
+      assert_eq!(start.abs_diff(&end), end);
     }
 }
