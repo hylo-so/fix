@@ -628,7 +628,7 @@ where
     Self: CheckedSub,
     Bits: Copy,
 {
-    fn abs_diff(&self, v: &Self) -> Self {
+    pub fn abs_diff(&self, v: &Self) -> Self {
         self.checked_sub(v).unwrap_or_else(|| *v - *self)
     }
 }
