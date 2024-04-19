@@ -623,6 +623,16 @@ where
     }
 }
 
+impl<Bits, Base, Exp> Fix<Bits, Base, Exp>
+where
+    Self: CheckedSub,
+    Bits: Copy,
+{
+    fn abs_diff(&self, v: &Self) -> Self {
+        self.checked_sub(v).unwrap_or_else(|| *v - *self)
+    }
+}
+
 /// Adapts `CheckedMul` concept to this library with computed `Output` type.
 pub trait CheckedMulFix<Rhs> {
     type Output;
@@ -922,5 +932,12 @@ mod tests {
         let mul = Milli::new(1000u64);
         let div = Milli::new(322u64);
         assert_eq!(start.mul_div_round(mul, div), Some(Milli::new(5876u64)));
+    }
+
+    #[test]
+    fn abs_diff() {
+      let start = Milli::new(u128::MIN);
+      let end = Milli::new(u128::MAX);
+      assert_eq!(start.abs_diff(&end), end);
     }
 }
