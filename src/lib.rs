@@ -532,7 +532,8 @@ where
     Self: CheckedSub,
     Bits: Copy,
 {
-    fn abs_diff(&self, v: &Self) -> Fix<Bits, Base, Exp> {
+    #[must_use]
+    pub fn abs_diff(&self, v: &Self) -> Fix<Bits, Base, Exp> {
         self.checked_sub(v).unwrap_or_else(|| *v - *self)
     }
 }
