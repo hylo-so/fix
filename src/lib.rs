@@ -167,7 +167,7 @@ impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
 
         // FIXME: Would like to do this with typenum::Pow, but that
         // seems to result in overflow evaluating requirements.
-        let ratio = base.pow(diff as u32);
+        let ratio = base.pow(diff.unsigned_abs());
 
         if inverse {
             Fix::new(self.bits / ratio)
@@ -256,6 +256,7 @@ impl_from_unsigned!(isize);
 /// library?
 pub trait Pow {
     /// Raises `self` to the power of `exp`.
+    #[must_use]
     fn pow(self, exp: u32) -> Self;
 }
 
@@ -531,7 +532,7 @@ where
     Self: CheckedSub,
     Bits: Copy,
 {
-    pub fn abs_diff(&self, v: &Self) -> Self {
+    fn abs_diff(&self, v: &Self) -> Fix<Bits, Base, Exp> {
         self.checked_sub(v).unwrap_or_else(|| *v - *self)
     }
 }
