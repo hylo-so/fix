@@ -142,6 +142,14 @@ impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
         }
     }
 
+    /// Like `Self::new`, but creates numbers in the constant context.
+    pub const fn constant(bits: Bits) -> Self {
+        Fix {
+            bits,
+            marker: PhantomData,
+        }
+    }
+
     /// Converts to another _Exp_.
     ///
     /// # Examples
