@@ -856,6 +856,6 @@ mod tests {
 
     #[test]
     fn constant() {
-      assert_eq!(Kilo::constant(69u64), Kilo::new(69u64));
+        assert_eq!(Kilo::constant(69u64), Kilo::new(69u64));
     }
 }
