@@ -142,6 +142,14 @@ impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
         }
     }
 
+    /// Like `Self::new`, but creates numbers in the constant context.
+    pub const fn constant(bits: Bits) -> Self {
+        Fix {
+            bits,
+            marker: PhantomData,
+        }
+    }
+
     /// Converts to another _Exp_.
     ///
     /// # Examples
@@ -844,5 +852,10 @@ mod tests {
         let start = Milli::new(u128::MIN);
         let end = Milli::new(u128::MAX);
         assert_eq!(start.abs_diff(&end), end);
+    }
+
+    #[test]
+    fn constant() {
+        assert_eq!(Kilo::constant(69u64), Kilo::new(69u64));
     }
 }
