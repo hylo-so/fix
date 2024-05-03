@@ -21,7 +21,7 @@ where
     where
         R: borsh::maybestd::io::Read,
     {
-        AnchorDeserialize::deserialize_reader(r).map(Fix::<Bits, Base, Exp>::new)
+        AnchorDeserialize::deserialize_reader(r).map(|bits: Bits| Fix::<Bits, Base, Exp>::new(bits))
     }
 }
 
