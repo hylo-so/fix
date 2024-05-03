@@ -1,4 +1,5 @@
 use crate::Fix;
+use anchor_lang::idl::IdlBuild;
 use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, Space};
 
 impl<Bits, Base, Exp> AnchorSerialize for Fix<Bits, Base, Exp>
@@ -24,6 +25,8 @@ where
         AnchorDeserialize::deserialize_reader(r).map(|bits: Bits| Fix::<Bits, Base, Exp>::new(bits))
     }
 }
+
+impl<Bits, Base, Exp> IdlBuild for Fix<Bits, Base, Exp> {}
 
 macro_rules! fix_init_space {
     ($ty:ident) => {
