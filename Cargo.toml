@@ -15,6 +15,7 @@ name = "fix"
 
 [features]
 anchor = ["dep:anchor-lang"]
+idl-build = ["anchor-lang/idl-build"]
 
 [dependencies]
 anchor-lang = { version = "0.30.0", optional = true }
