@@ -1,5 +1,29 @@
 use crate::Fix;
-use anchor_lang::prelude::Space;
+use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, Space};
+
+impl<Bits, Base, Exp> AnchorSerialize for Fix<Bits, Base, Exp>
+where
+    Bits: AnchorSerialize,
+{
+    fn serialize<W>(&self, w: &mut W) -> Result<(), borsh::maybestd::io::Error>
+    where
+        W: borsh::maybestd::io::Write,
+    {
+        self.bits.serialize(w)
+    }
+}
+
+impl<Bits, Base, Exp> AnchorDeserialize for Fix<Bits, Base, Exp>
+where
+    Bits: AnchorDeserialize,
+{
+    fn deserialize_reader<R>(r: &mut R) -> Result<Self, borsh::maybestd::io::Error>
+    where
+        R: borsh::maybestd::io::Read,
+    {
+        AnchorDeserialize::deserialize_reader(r).map(Fix::new)
+    }
+}
 
 macro_rules! fix_init_space {
     ($ty:ident) => {
