@@ -69,7 +69,6 @@ pub extern crate num_traits;
 pub extern crate typenum;
 
 pub mod aliases;
-#[cfg(feature = "anchor")]
 pub mod anchor;
 pub mod prelude;
 

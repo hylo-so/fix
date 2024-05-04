@@ -1,8 +1,49 @@
+use crate::typenum::{Integer, Unsigned};
 use crate::Fix;
 use anchor_lang::idl::IdlBuild;
-use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, Space};
+use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, ErrorCode, Space};
 
-impl<Bits, Base, Exp> AnchorSerialize for Fix<Bits, Base, Exp>
+/// A "flattened" value-space version of `Fix` with no dependence on typenum.
+/// Intended to be used as a stored type on chain, as it's compatible with Anchor's
+/// serde and IDL generator.
+pub struct VFix<Bits> {
+    pub bits: Bits,
+    pub base: u64,
+    pub exp: i64,
+}
+
+impl<Bits, Base, Exp> From<Fix<Bits, Base, Exp>> for VFix<Bits>
+where
+    Base: Unsigned,
+    Exp: Integer,
+{
+    fn from(fix: Fix<Bits, Base, Exp>) -> VFix<Bits> {
+        VFix {
+            bits: fix.bits,
+            base: Base::to_u64(),
+            exp: Exp::to_i64(),
+        }
+    }
+}
+
+impl<Bits, Base, Exp> TryInto<Fix<Bits, Base, Exp>> for VFix<Bits>
+where
+    Base: Unsigned,
+    Exp: Integer,
+{
+    type Error = anchor_lang::error::Error;
+    fn try_into(self) -> anchor_lang::Result<Fix<Bits, Base, Exp>> {
+        let base = Base::to_u64();
+        let exp = Exp::to_i64();
+        if base == self.base && exp == self.exp {
+            Ok(Fix::new(self.bits))
+        } else {
+            Err(ErrorCode::AccountDidNotDeserialize.into())
+        }
+    }
+}
+
+impl<Bits> AnchorSerialize for VFix<Bits>
 where
     Bits: AnchorSerialize,
 {
@@ -10,11 +51,14 @@ where
     where
         W: borsh::maybestd::io::Write,
     {
-        self.bits.serialize(w)
+        self.bits
+            .serialize(w)
+            .and_then(|()| self.base.serialize(w))
+            .and_then(|()| self.exp.serialize(w))
     }
 }
 
-impl<Bits, Base, Exp> AnchorDeserialize for Fix<Bits, Base, Exp>
+impl<Bits> AnchorDeserialize for VFix<Bits>
 where
     Bits: AnchorDeserialize,
 {
@@ -22,29 +66,32 @@ where
     where
         R: borsh::maybestd::io::Read,
     {
-        AnchorDeserialize::deserialize_reader(r).map(|bits: Bits| Fix::<Bits, Base, Exp>::new(bits))
+        let bits: Bits = AnchorDeserialize::deserialize_reader(r)?;
+        let base: u64 = AnchorDeserialize::deserialize_reader(r)?;
+        let exp: i64 = AnchorDeserialize::deserialize_reader(r)?;
+        Ok(VFix { bits, base, exp })
     }
 }
 
-impl<Bits, Base, Exp> IdlBuild for Fix<Bits, Base, Exp> {}
+impl<Bits> IdlBuild for VFix<Bits> {}
 
-macro_rules! fix_init_space {
+macro_rules! vfix_init_space {
     ($ty:ident) => {
-        impl<Base, Exp> Space for Fix<$ty, Base, Exp> {
+        impl Space for VFix<$ty> {
             const INIT_SPACE: usize = core::mem::size_of::<$ty>();
         }
     };
 }
 
-fix_init_space!(u8);
-fix_init_space!(u16);
-fix_init_space!(u32);
-fix_init_space!(u64);
-fix_init_space!(u128);
-fix_init_space!(usize);
-fix_init_space!(i8);
-fix_init_space!(i16);
-fix_init_space!(i32);
-fix_init_space!(i64);
-fix_init_space!(i128);
-fix_init_space!(isize);
+vfix_init_space!(u8);
+vfix_init_space!(u16);
+vfix_init_space!(u32);
+vfix_init_space!(u64);
+vfix_init_space!(u128);
+vfix_init_space!(usize);
+vfix_init_space!(i8);
+vfix_init_space!(i16);
+vfix_init_space!(i32);
+vfix_init_space!(i64);
+vfix_init_space!(i128);
+vfix_init_space!(isize);
