@@ -107,13 +107,25 @@ vfix_init_space!(isize);
 mod tests {
     use super::*;
     use crate::aliases::si::Kilo;
+    use anyhow::Result;
+    use borsh::to_vec;
 
     #[test]
-    fn round_trip_vfix() {
+    fn round_trip_vfix() -> Result<()> {
         let start = Kilo::new(6900u64);
         let there: VFix<u64> = start.into();
-        let back: Kilo<u64> = there.try_into().expect("convert");
-        assert_eq!(there, VFix::new(6900u64, 10, 3));
-        assert_eq!(start, back);
+        let back: Kilo<u64> = there.try_into()?;
+        Ok({
+            assert_eq!(there, VFix::new(6900u64, 10, 3));
+            assert_eq!(start, back);
+        })
+    }
+
+    #[test]
+    fn serialize() -> Result<()> {
+        let start = VFix::new(89001u32, 10, -2);
+        let bytes = to_vec(&start)?;
+        let back = AnchorDeserialize::deserialize(&mut bytes.as_slice())?;
+        Ok(assert_eq!(start, back))
     }
 }
