@@ -3,9 +3,9 @@ use crate::Fix;
 use anchor_lang::idl::IdlBuild;
 use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, ErrorCode, Space};
 
-/// A "flattened" value-space version of `Fix` with no dependence on typenum.
-/// Intended to be used as a stored type on chain, as it's compatible with Anchor's
-/// serde and IDL generator.
+/// A dumbed down value version of `Fix` with no base or exponent types.
+/// Intended for storage on chain in Solana accounts, as it implements Borsh serde
+/// should play nicely with Anchor's IDL generator.
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct VFix<Bits> {
     pub bits: Bits,
