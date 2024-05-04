@@ -6,10 +6,17 @@ use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, ErrorCode,
 /// A "flattened" value-space version of `Fix` with no dependence on typenum.
 /// Intended to be used as a stored type on chain, as it's compatible with Anchor's
 /// serde and IDL generator.
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct VFix<Bits> {
     pub bits: Bits,
     pub base: u64,
     pub exp: i64,
+}
+
+impl<Bits> VFix<Bits> {
+    pub fn new(bits: Bits, base: u64, exp: i64) -> Self {
+        Self { bits, base, exp }
+    }
 }
 
 impl<Bits, Base, Exp> From<Fix<Bits, Base, Exp>> for VFix<Bits>
@@ -95,3 +102,18 @@ vfix_init_space!(i32);
 vfix_init_space!(i64);
 vfix_init_space!(i128);
 vfix_init_space!(isize);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::aliases::si::Kilo;
+
+    #[test]
+    fn round_trip_vfix() {
+        let start = Kilo::new(6900u64);
+        let there: VFix<u64> = start.into();
+        let back: Kilo<u64> = there.try_into().expect("convert");
+        assert_eq!(there, VFix::new(6900u64, 10, 3));
+        assert_eq!(start, back);
+    }
+}
