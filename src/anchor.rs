@@ -1,6 +1,5 @@
 use crate::typenum::{Integer, Unsigned};
 use crate::Fix;
-use anchor_lang::idl::IdlBuild;
 use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, ErrorCode, Space};
 
 /// A dumbed down value version of `Fix` with no base or exponent types.
@@ -80,7 +79,8 @@ where
     }
 }
 
-impl<Bits> IdlBuild for FixValue<Bits> {}
+#[cfg(feature = "idl-build")]
+impl<Bits> anchor_lang::IdlBuild for FixValue<Bits> {}
 
 macro_rules! impl_init_space {
     ($ty:ident) => {
@@ -102,6 +102,9 @@ impl_init_space!(i32);
 impl_init_space!(i64);
 impl_init_space!(i128);
 impl_init_space!(isize);
+
+
+pub struct FixValue2<Bits, Base, Exp>(Fix<Bits, Base, Exp>);
 
 #[cfg(test)]
 mod tests {
