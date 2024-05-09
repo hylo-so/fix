@@ -57,10 +57,10 @@ where
     where
         W: borsh::maybestd::io::Write,
     {
-        self.bits
-            .serialize(w)
-            .and_then(|()| self.base.serialize(w))
-            .and_then(|()| self.exp.serialize(w))
+        self.bits.serialize(w)?;
+        self.base.serialize(w)?;
+        self.exp.serialize(w)?;
+        Ok(())
     }
 }
 
@@ -113,7 +113,7 @@ mod tests {
     use borsh::to_vec;
 
     #[test]
-    fn round_trip_vfix() -> Result<()> {
+    fn roundtrip_into_fixval() -> Result<()> {
         let start = Kilo::new(6900u64);
         let there: FixValue<u64> = start.into();
         let back: Kilo<u64> = there.try_into()?;
@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn serialize() -> Result<()> {
+    fn roundtrip_serialize_fixval() -> Result<()> {
         let start = FixValue::new(89001u32, 10, -2);
         let bytes = to_vec(&start)?;
         let back = AnchorDeserialize::deserialize(&mut bytes.as_slice())?;
