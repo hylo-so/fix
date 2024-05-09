@@ -8,12 +8,12 @@ use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, ErrorCode,
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub struct FixValue<Bits> {
     pub bits: Bits,
-    pub base: u64,
-    pub exp: i64,
+    pub base: u8,
+    pub exp: i8,
 }
 
 impl<Bits> FixValue<Bits> {
-    pub fn new(bits: Bits, base: u64, exp: i64) -> Self {
+    pub fn new(bits: Bits, base: u8, exp: i8) -> Self {
         Self { bits, base, exp }
     }
 }
@@ -26,8 +26,8 @@ where
     fn from(fix: Fix<Bits, Base, Exp>) -> FixValue<Bits> {
         FixValue {
             bits: fix.bits,
-            base: Base::to_u64(),
-            exp: Exp::to_i64(),
+            base: Base::to_u8(),
+            exp: Exp::to_i8(),
         }
     }
 }
@@ -39,8 +39,8 @@ where
 {
     type Error = anchor_lang::error::Error;
     fn try_into(self) -> anchor_lang::Result<Fix<Bits, Base, Exp>> {
-        let base = Base::to_u64();
-        let exp = Exp::to_i64();
+        let base = Base::to_u8();
+        let exp = Exp::to_i8();
         if base == self.base && exp == self.exp {
             Ok(Fix::new(self.bits))
         } else {
@@ -73,8 +73,8 @@ where
         R: borsh::maybestd::io::Read,
     {
         let bits: Bits = AnchorDeserialize::deserialize_reader(r)?;
-        let base: u64 = AnchorDeserialize::deserialize_reader(r)?;
-        let exp: i64 = AnchorDeserialize::deserialize_reader(r)?;
+        let base: u8 = AnchorDeserialize::deserialize_reader(r)?;
+        let exp: i8 = AnchorDeserialize::deserialize_reader(r)?;
         Ok(FixValue { bits, base, exp })
     }
 }
@@ -102,7 +102,6 @@ impl_init_space!(i32);
 impl_init_space!(i64);
 impl_init_space!(i128);
 impl_init_space!(isize);
-
 
 pub struct FixValue2<Bits, Base, Exp>(Fix<Bits, Base, Exp>);
 
