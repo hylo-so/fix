@@ -103,8 +103,6 @@ impl_init_space!(i64);
 impl_init_space!(i128);
 impl_init_space!(isize);
 
-pub struct FixValue2<Bits, Base, Exp>(Fix<Bits, Base, Exp>);
-
 #[cfg(test)]
 mod tests {
     use super::*;
