@@ -69,9 +69,9 @@ pub extern crate num_traits;
 pub extern crate typenum;
 
 pub mod aliases;
-pub mod fix_u64;
 pub mod fix_value;
 pub mod prelude;
+pub mod ufix_value64;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
 use core::fmt::{Debug, Error, Formatter};

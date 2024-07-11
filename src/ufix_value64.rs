@@ -3,25 +3,26 @@ use crate::Fix;
 use anchor_lang::prelude::*;
 
 #[derive(PartialEq, AnchorSerialize, AnchorDeserialize, Eq, Copy, Clone, Debug)]
-pub struct FixU64 {
+pub struct UFixValue64 {
     bits: u64,
     base: u8,
     exp: i8,
 }
 
-impl FixU64 {
+impl UFixValue64 {
+    #[must_use]
     pub fn new(bits: u64, base: u8, exp: i8) -> Self {
         Self { bits, base, exp }
     }
 }
 
-impl<Base, Exp> From<Fix<u64, Base, Exp>> for FixU64
+impl<Base, Exp> From<Fix<u64, Base, Exp>> for UFixValue64
 where
     Base: Unsigned,
     Exp: Integer,
 {
-    fn from(fix: Fix<u64, Base, Exp>) -> FixU64 {
-        FixU64 {
+    fn from(fix: Fix<u64, Base, Exp>) -> UFixValue64 {
+        UFixValue64 {
             bits: fix.bits,
             base: Base::to_u8(),
             exp: Exp::to_i8(),
@@ -29,7 +30,7 @@ where
     }
 }
 
-impl<Base, Exp> TryInto<Fix<u64, Base, Exp>> for FixU64
+impl<Base, Exp> TryInto<Fix<u64, Base, Exp>> for UFixValue64
 where
     Base: Unsigned,
     Exp: Integer,
@@ -46,7 +47,7 @@ where
     }
 }
 
-impl Space for FixU64 {
+impl Space for UFixValue64 {
     const INIT_SPACE: usize = 8 + 1 + 1;
 }
 
@@ -60,15 +61,15 @@ mod tests {
     #[test]
     fn roundtrip_into_fixval() -> Result<()> {
         let start = Kilo::new(6900u64);
-        let there: FixU64 = start.into();
+        let there: UFixValue64 = start.into();
         let back: Kilo<u64> = there.try_into()?;
-        assert_eq!(there, FixU64::new(6900u64, 10u8, 3i8));
+        assert_eq!(there, UFixValue64::new(6900u64, 10u8, 3i8));
         Ok(assert_eq!(start, back))
     }
 
     #[test]
     fn roundtrip_serialize_fixval() -> Result<()> {
-        let start = FixU64::new(89001u64, 10u8, -2i8);
+        let start = UFixValue64::new(89001u64, 10u8, -2i8);
         let bytes = to_vec(&start)?;
         let back = AnchorDeserialize::deserialize(&mut bytes.as_slice())?;
         Ok(assert_eq!(start, back))
