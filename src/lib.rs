@@ -62,14 +62,15 @@
 //!
 //! This crate is `no_std`.
 
-#![no_std]
+//#![no_std]
 
 pub extern crate muldiv;
 pub extern crate num_traits;
 pub extern crate typenum;
 
 pub mod aliases;
-pub mod anchor;
+pub mod fix_u64;
+pub mod fix_value;
 pub mod prelude;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
