@@ -53,9 +53,6 @@ macro_rules! impl_fix_value {
                     }
                 }
             }
-
-            #[cfg(feature = "idl-build")]
-            impl anchor_lang::IdlBuild for [<$sign FixValue $bits>] {}
         }
     };
 }
