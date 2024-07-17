@@ -10,9 +10,9 @@ macro_rules! impl_fix_value {
            /// Only intended for serialized storage in Solana accounts.
             #[derive(PartialEq, Eq, Copy, Clone, Debug, AnchorSerialize, AnchorDeserialize, InitSpace)]
             pub struct [<$sign FixValue $bits>] {
-                bits: [<$sign:lower $bits>],
-                base: u8,
-                exp: i8,
+                pub bits: [<$sign:lower $bits>],
+                pub base: u8,
+                pub exp: i8,
             }
 
             impl [<$sign FixValue $bits>] {
