@@ -17,7 +17,7 @@ name = "fix"
 idl-build = ["anchor-lang/idl-build"]
 
 [dependencies]
-anchor-lang = "0.30.0"
+anchor-lang = "0.30"
 anyhow = "1.0.82"
 muldiv = "1.0.1"
 num-traits = "0.2.17"
