@@ -71,6 +71,7 @@ pub extern crate typenum;
 pub mod aliases;
 pub mod fix_value;
 pub mod prelude;
+pub mod util;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
 use core::fmt::{Debug, Error, Formatter};
