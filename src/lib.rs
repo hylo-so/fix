@@ -62,16 +62,16 @@
 //!
 //! This crate is `no_std`.
 
-#![no_std]
+//#![no_std]
 
 pub extern crate muldiv;
 pub extern crate num_traits;
 pub extern crate typenum;
 
 pub mod aliases;
-#[cfg(feature = "anchor")]
-pub mod anchor;
+pub mod fix_value;
 pub mod prelude;
+pub mod util;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
 use core::fmt::{Debug, Error, Formatter};
@@ -80,8 +80,6 @@ use core::marker::PhantomData;
 use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
-#[cfg(feature = "anchor")]
-use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize};
 use muldiv::MulDiv;
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
 use paste::paste;
@@ -117,7 +115,6 @@ use typenum::type_operators::{Abs, IsLess};
 /// - _(x B<sup>E</sup>) × y = (x × y) B<sup>E</sup>_
 /// - _(x B<sup>E</sup>) ÷ y = (x ÷ y) B<sup>E</sup>_
 /// - _(x B<sup>E</sup>) % y = (x % y) B<sup>E</sup>_
-#[cfg_attr(feature = "anchor", derive(AnchorSerialize, AnchorDeserialize))]
 pub struct Fix<Bits, Base, Exp> {
     /// The underlying integer.
     pub bits: Bits,
