@@ -26,6 +26,7 @@
             openssl
             pkg-config
             rust-bin.stable.latest.complete  
+            rust-analyzer
           ];
         };
       };

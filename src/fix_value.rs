@@ -1,6 +1,8 @@
 use crate::typenum::{Integer, U10};
 use crate::Fix;
-use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, InitSpace};
+
+use anchor_lang::error::ErrorCode::InvalidNumericConversion;
+use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, InitSpace, Result};
 use paste::paste;
 
 macro_rules! impl_fix_value {
@@ -33,13 +35,18 @@ macro_rules! impl_fix_value {
                 }
             }
 
-            impl<Bits, Exp> From<[<$sign FixValue $bits>]> for Fix<Bits, U10, Exp>
+            impl<Bits, Exp> TryFrom<[<$sign FixValue $bits>]> for Fix<Bits, U10, Exp>
             where
                 Bits: From<[<$sign:lower $bits>]>,
                 Exp: Integer,
             {
-              fn from(value: [<$sign FixValue $bits>]) -> Fix<Bits, U10, Exp> {
-                Fix::new(value.bits.into())
+              type Error = anchor_lang::error::Error;
+              fn try_from(value: [<$sign FixValue $bits>]) -> Result<Fix<Bits, U10, Exp>> {
+                if value.exp == Exp::to_i8() {
+                  Ok(Fix::new(value.bits.into()))
+                } else {
+                  Err(InvalidNumericConversion.into())
+                }
               }
             }
         }
@@ -71,7 +78,7 @@ mod tests {
                 fn [<roundtrip_into_ $sign:lower $bits>]() -> Result<()> {
                     let start = Kilo::new([<69 $sign:lower $bits>]);
                     let there: [<$sign FixValue $bits>] = start.into();
-                    let back: Kilo<[<$sign:lower $bits>]> = there.into();
+                    let back: Kilo<[<$sign:lower $bits>]> = there.try_into()?;
                     assert_eq!(there, [<$sign FixValue $bits>]::new(69, 3));
                     Ok(assert_eq!(start, back))
                 }
@@ -82,6 +89,13 @@ mod tests {
                     let bytes = to_vec(&start)?;
                     let back = AnchorDeserialize::deserialize(&mut bytes.as_slice())?;
                     Ok(assert_eq!(start, back))
+                }
+
+                #[test]
+                fn [<wrong_exp_should_fail_ $sign:lower $bits>]() -> Result<()> {
+                    let pow11 = [<$sign FixValue $bits>]::new(42, -11);
+                    let wrong = TryInto::<Kilo<[<$sign:lower $bits>]>>::try_into(pow11);
+                    Ok(assert_eq!(Err(InvalidNumericConversion.into()), wrong))
                 }
             }
         };
