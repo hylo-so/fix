@@ -9,17 +9,12 @@ pub mod binary {
     pub type UFix32<Exp> = Fix<u32, U2, Exp>;
     pub type UFix64<Exp> = Fix<u64, U2, Exp>;
     pub type UFixSize<Exp> = Fix<usize, U2, Exp>;
-
-    #[cfg(feature = "i128")]
     pub type UFix128<Exp> = Fix<u128, U2, Exp>;
-
     pub type IFix8<Exp> = Fix<i8, U2, Exp>;
     pub type IFix16<Exp> = Fix<i16, U2, Exp>;
     pub type IFix32<Exp> = Fix<i32, U2, Exp>;
     pub type IFix64<Exp> = Fix<i64, U2, Exp>;
     pub type IFixSize<Exp> = Fix<isize, U2, Exp>;
-
-    #[cfg(feature = "i128")]
     pub type IFix128<Exp> = Fix<i128, U2, Exp>;
 }
 
@@ -34,17 +29,12 @@ pub mod decimal {
     pub type UFix32<Exp> = Fix<u32, U10, Exp>;
     pub type UFix64<Exp> = Fix<u64, U10, Exp>;
     pub type UFixSize<Exp> = Fix<usize, U10, Exp>;
-
-    #[cfg(feature = "i128")]
     pub type UFix128<Exp> = Fix<u128, U10, Exp>;
-
     pub type IFix8<Exp> = Fix<i8, U10, Exp>;
     pub type IFix16<Exp> = Fix<i16, U10, Exp>;
     pub type IFix32<Exp> = Fix<i32, U10, Exp>;
     pub type IFix64<Exp> = Fix<i64, U10, Exp>;
     pub type IFixSize<Exp> = Fix<isize, U10, Exp>;
-
-    #[cfg(feature = "i128")]
     pub type IFix128<Exp> = Fix<i128, U10, Exp>;
 }
 
