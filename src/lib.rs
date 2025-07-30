@@ -81,7 +81,9 @@ use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
 use muldiv::MulDiv;
-use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
+use num_traits::{
+    CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, SaturatingAdd, SaturatingMul, SaturatingSub,
+};
 use paste::paste;
 use typenum::consts::Z0;
 use typenum::marker_traits::{Bit, Integer, Unsigned};
@@ -608,6 +610,26 @@ where
         self.bits
             .mul_div_round(num.bits, denom.bits)
             .map(Self::Output::new)
+    }
+}
+
+// Saturating arithmetic.
+
+impl<Bits, Base, Exp> SaturatingAdd for Fix<Bits, Base, Exp>
+where
+    Bits: SaturatingAdd,
+{
+    fn saturating_add(&self, v: &Self) -> Self {
+        Self::new(self.bits.saturating_add(&v.bits))
+    }
+}
+
+impl<Bits, Base, Exp> SaturatingSub for Fix<Bits, Base, Exp>
+where
+    Bits: SaturatingSub,
+{
+    fn saturating_sub(&self, v: &Self) -> Self {
+        Self::new(self.bits.saturating_sub(&v.bits))
     }
 }
 
