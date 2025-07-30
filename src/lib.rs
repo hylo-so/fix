@@ -81,9 +81,7 @@ use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
 use muldiv::MulDiv;
-use num_traits::{
-    CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, SaturatingAdd, SaturatingMul, SaturatingSub,
-};
+use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, SaturatingAdd, SaturatingSub};
 use paste::paste;
 use typenum::consts::Z0;
 use typenum::marker_traits::{Bit, Integer, Unsigned};
@@ -635,6 +633,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use num_traits::{SaturatingAdd, SaturatingSub};
+
     use crate::aliases::si::{Kilo, Milli, Unit};
     use crate::{CheckedAdd, CheckedDivFix, CheckedMulFix, CheckedSub, MulDiv};
 
@@ -876,5 +876,19 @@ mod tests {
     #[test]
     fn constant() {
         assert_eq!(Kilo::constant(69u64), Kilo::new(69u64));
+    }
+
+    #[test]
+    fn saturating_sub() {
+        let zero = Kilo::constant(0);
+        let result = zero.saturating_sub(&Kilo::new(69u64));
+        assert_eq!(zero, result);
+    }
+
+    #[test]
+    fn saturating_add() {
+        let max = Kilo::new(u64::MAX);
+        let result = max.saturating_add(&Kilo::new(69u64));
+        assert_eq!(max, result);
     }
 }
