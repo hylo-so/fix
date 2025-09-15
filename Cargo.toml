@@ -1,6 +1,6 @@
 [package]
 name = "hylo-fix"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 description = "Fixed-point number types with Solana Anchor support"
 authors = ["0xPlish <plish@hylo.so>", "Curtis McEnroe <programble@gmail.com>"]
@@ -23,4 +23,5 @@ muldiv = "1.0.1"
 num-traits = "0.2.17"
 paste = "1.0.14"
 quote = "1.0.36"
+serde = { version = "1.0.224", features = ["derive"] }
 typenum = { version = "1.17.0", features = ["i128"] }
