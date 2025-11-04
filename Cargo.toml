@@ -1,6 +1,6 @@
 [package]
 name = "hylo-fix"
-version = "0.4.2"
+version = "0.5.0"
 edition = "2021"
 description = "Fixed-point number types with Solana Anchor support"
 authors = ["0xPlish <plish@hylo.so>", "Curtis McEnroe <programble@gmail.com>"]
@@ -17,7 +17,7 @@ name = "fix"
 idl-build = ["anchor-lang/idl-build"]
 
 [dependencies]
-anchor-lang = "0.31"
+anchor-lang = "0.32"
 anyhow = "1.0.82"
 muldiv = "1.0.1"
 num-traits = "0.2.17"
