@@ -2,8 +2,8 @@
   description = "fix Rust devShell";
 
   inputs = {
-    nixpkgs.url      = "github:NixOS/nixpkgs/23.11";
-    rust-overlay.url = "github:oxalica/rust-overlay/9f3d63d569536cd661a4adcf697e32eb08d61e31";
+    nixpkgs.url      = "github:NixOS/nixpkgs/25.11";
+    rust-overlay.url = "github:oxalica/rust-overlay/bc00300f010275e46feb3c3974df6587ff7b7808";
     flake-parts.url  = "github:hercules-ci/flake-parts";
   };
 
@@ -25,8 +25,9 @@
           buildInputs = [
             openssl
             pkg-config
-            rust-bin.stable."1.81.0".default  
-            rust-analyzer
+            (rust-bin.stable."1.82.0".default.override {
+              extensions = [ "rust-analyzer" "rust-src" ];
+            })
           ];
         };
       };

@@ -311,6 +311,16 @@ where
     }
 }
 
+impl<Bits, Base, Exp> Fix<Bits, Base, Exp>
+where
+    Bits: Default,
+{
+    #[must_use]
+    pub fn zero() -> Self {
+        Self::default()
+    }
+}
+
 impl<Bits, Base, Exp> Hash for Fix<Bits, Base, Exp>
 where
     Bits: Hash,
