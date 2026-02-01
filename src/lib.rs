@@ -754,57 +754,57 @@ mod tests {
     fn checked_add_neg() {
         let max = Kilo::new(u8::MAX);
         let one = Kilo::new(1);
-        assert!(max.checked_add(&one).is_none())
+        assert!(max.checked_add(&one).is_none());
     }
 
     #[test]
     fn checked_add_pos() {
         let forty = Kilo::new(40);
         let two = Kilo::new(2);
-        assert_eq!(forty.checked_add(&two), Some(Kilo::new(42)))
+        assert_eq!(forty.checked_add(&two), Some(Kilo::new(42)));
     }
 
     #[test]
     fn checked_sub_neg() {
         let one = Kilo::new(1);
         let max = Kilo::new(u8::MAX);
-        assert!(one.checked_sub(&max).is_none())
+        assert!(one.checked_sub(&max).is_none());
     }
 
     #[test]
     fn checked_sub_pos() {
         let fifty = Kilo::new(50);
         let eight = Kilo::new(8);
-        assert_eq!(fifty.checked_sub(&eight), Some(Kilo::new(42)))
+        assert_eq!(fifty.checked_sub(&eight), Some(Kilo::new(42)));
     }
 
     #[test]
     fn checked_mul_neg() {
         let fifty = Kilo::new(50);
         let max = Kilo::new(u8::MAX);
-        assert!(fifty.checked_mul(&max).is_none())
+        assert!(fifty.checked_mul(&max).is_none());
     }
 
     #[test]
     fn checked_mul_pos() {
         let fifty = Kilo::new(50_u64);
         assert_eq!(
-            fifty.checked_mul(&fifty).map(|out| out.convert()),
+            fifty.checked_mul(&fifty).map(super::Fix::convert),
             Some(Kilo::new(2_500_000_u64))
-        )
+        );
     }
 
     #[test]
     fn checked_div_neg() {
         let one = Unit::new(0);
-        assert!(one.checked_div(&one).is_none())
+        assert!(one.checked_div(&one).is_none());
     }
 
     #[test]
     fn checked_div_pos() {
         let hundred = Kilo::new(100);
         let five = Kilo::new(5);
-        assert_eq!(hundred.checked_div(&five), Some(Unit::new(20)))
+        assert_eq!(hundred.checked_div(&five), Some(Unit::new(20)));
     }
 
     #[test]
@@ -823,25 +823,28 @@ mod tests {
 
     #[test]
     fn widen_succeeds() {
-        let one = Milli::new(1340191u64);
+        let one = Milli::new(1_340_191u64);
         let mapped = one.widen::<u128>();
-        assert_eq!(mapped, Milli::new(1340191u128));
+        assert_eq!(mapped, Milli::new(1_340_191_u128));
     }
 
     #[test]
     fn mul_div_ceil() {
-        let start = Milli::new(313459u64);
+        let start = Milli::new(313_459u64);
         let mul = Milli::new(1200u64);
         let div = Milli::new(2450u64);
-        assert_eq!(start.mul_div_ceil(mul, div), Some(Milli::new(153531)));
+        assert_eq!(start.mul_div_ceil(mul, div), Some(Milli::new(153_531)));
     }
 
     #[test]
     fn mul_div_ceil_unit() {
-        let start = Milli::new(31345934u64);
+        let start = Milli::new(31_345_934u64);
         let mul = Milli::new(1000u64);
         let div = Milli::new(2000u64);
-        assert_eq!(start.mul_div_ceil(mul, div), Some(Milli::new(15672967u64)));
+        assert_eq!(
+            start.mul_div_ceil(mul, div),
+            Some(Milli::new(15_672_967_u64))
+        );
     }
 
     #[test]
@@ -849,7 +852,10 @@ mod tests {
         let start = Milli::new(69_693u64);
         let mul = Milli::new(5_192u64);
         let div = Milli::new(190u64);
-        assert_eq!(start.mul_div_floor(mul, div), Some(Milli::new(1904452u64)));
+        assert_eq!(
+            start.mul_div_floor(mul, div),
+            Some(Milli::new(1_904_452_u64))
+        );
     }
 
     #[test]
@@ -857,7 +863,10 @@ mod tests {
         let start = Milli::new(69_693u64);
         let mul = Milli::new(1000u64);
         let div = Milli::new(9u64);
-        assert_eq!(start.mul_div_floor(mul, div), Some(Milli::new(7743666u64)));
+        assert_eq!(
+            start.mul_div_floor(mul, div),
+            Some(Milli::new(7_743_666_u64))
+        );
     }
 
     #[test]
