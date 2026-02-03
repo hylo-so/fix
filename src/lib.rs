@@ -645,7 +645,8 @@ where
 mod tests {
     use num_traits::{SaturatingAdd, SaturatingSub};
 
-    use crate::aliases::si::{Kilo, Milli, Unit};
+    use crate::aliases::si::{Kilo, Micro, Milli, Nano, Unit};
+    use crate::util::FixExt;
     use crate::{CheckedAdd, CheckedDivFix, CheckedMulFix, CheckedSub, MulDiv};
 
     #[test]
@@ -909,5 +910,19 @@ mod tests {
         let max = Kilo::new(u64::MAX);
         let result = max.saturating_add(&Kilo::new(69u64));
         assert_eq!(max, result);
+    }
+
+    #[test]
+    fn zero_is_zero() {
+        assert_eq!(Kilo::<u64>::zero().bits, 0);
+        assert_eq!(Milli::<u64>::zero().bits, 0);
+        assert_eq!(Nano::<u64>::zero().bits, 0);
+    }
+
+    #[test]
+    fn one_is_correct() {
+        assert_eq!(Milli::<u64>::one().bits, 1_000);
+        assert_eq!(Micro::<u64>::one().bits, 1_000_000);
+        assert_eq!(Nano::<u64>::one().bits, 1_000_000_000);
     }
 }
