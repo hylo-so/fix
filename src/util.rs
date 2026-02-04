@@ -1,25 +1,20 @@
-use typenum::NInt;
-
-use crate::typenum::{IsLess, NonZero, Unsigned, U10, U20};
-use crate::Fix;
+use crate::typenum::consts::Z0;
+use crate::typenum::{Integer, IsLess, B1, U10};
+use crate::{Fix, FromUnsigned, Pow};
 
 /// Domain specific extensions to the `Fix` type as it's used in this project.
 pub trait FixExt: Sized {
     /// This precision's equivalent of 1.
     fn one() -> Self;
-    fn zero() -> Self;
 }
 
-impl<Bits, Exp> FixExt for Fix<Bits, U10, NInt<Exp>>
+impl<Bits, Exp> FixExt for Fix<Bits, U10, Exp>
 where
-    Exp: Unsigned + NonZero + IsLess<U20>,
-    Bits: From<u64>,
+    Bits: FromUnsigned + Pow,
+    Exp: Integer + IsLess<Z0, Output = B1>,
 {
-    fn one() -> Fix<Bits, U10, NInt<Exp>> {
-        Fix::new(U10::to_u64().pow(Exp::to_u32()).into())
-    }
-
-    fn zero() -> Self {
-        Fix::new(0.into())
+    fn one() -> Self {
+        let base = Bits::from_unsigned::<U10>();
+        Fix::new(base.pow(Exp::to_i32().unsigned_abs()))
     }
 }

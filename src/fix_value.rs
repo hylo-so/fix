@@ -18,7 +18,7 @@ macro_rules! impl_fix_value {
             }
 
             impl [<$sign FixValue $bits>] {
-                pub fn new(bits: [<$sign:lower $bits>], exp: i8) -> Self {
+                #[must_use] pub fn new(bits: [<$sign:lower $bits>], exp: i8) -> Self {
                     Self { bits, exp }
                 }
             }
