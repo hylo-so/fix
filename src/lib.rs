@@ -87,7 +87,6 @@ use typenum::consts::Z0;
 use typenum::marker_traits::{Bit, Integer, Unsigned};
 use typenum::operator_aliases::{AbsVal, Diff, Le, Sum};
 use typenum::type_operators::{Abs, IsLess};
-use util::FixExt;
 
 /// Fixed-point number representing _Bits × Base <sup>Exp</sup>_.
 ///
@@ -180,30 +179,6 @@ impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
         } else {
             Fix::new(self.bits * ratio)
         }
-    }
-
-    /// Converts to another _Exp_, returning `None` on overflow.
-    ///
-    /// Uses `mul_div_floor` to perform the rescaling through a wider
-    /// intermediate, avoiding overflow during the conversion itself.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use fix::prelude::*;
-    /// let source = UFix64::<N3>::new(5u64);
-    /// let target = source.checked_convert::<N6>();
-    /// assert_eq!(target, Some(UFix64::<N6>::new(5_000u64)));
-    /// ```
-    pub fn checked_convert<ToExp>(self) -> Option<Fix<Bits, Base, ToExp>>
-    where
-        Bits: MulDiv<Output = Bits>,
-        Fix<Bits, Base, Exp>: FixExt,
-        Fix<Bits, Base, ToExp>: FixExt,
-    {
-        let target_one = Fix::<Bits, Base, ToExp>::one();
-        let source_one = Fix::<Bits, Base, Exp>::one();
-        target_one.mul_div_floor(self, source_one)
     }
 
     /// Converts the underlying bits to a wider type.
