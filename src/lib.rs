@@ -925,4 +925,39 @@ mod tests {
         assert_eq!(Micro::<u64>::one().bits, 1_000_000);
         assert_eq!(Nano::<u64>::one().bits, 1_000_000_000);
     }
+
+    #[test]
+    fn checked_convert_upconvert() {
+        assert_eq!(
+            Milli::new(5u64).checked_convert(),
+            Some(Micro::new(5_000u64)),
+        );
+    }
+
+    #[test]
+    fn checked_convert_downconvert() {
+        assert_eq!(
+            Micro::new(5_000u64).checked_convert(),
+            Some(Milli::new(5u64)),
+        );
+    }
+
+    #[test]
+    fn checked_convert_identity() {
+        assert_eq!(Milli::new(42u64).checked_convert(), Some(Milli::new(42u64)),);
+    }
+
+    #[test]
+    fn checked_convert_overflow() {
+        assert_eq!(Milli::new(u64::MAX).checked_convert::<typenum::N9>(), None,);
+    }
+
+    #[test]
+    fn checked_convert_matches_convert() {
+        let value = Milli::new(15u64);
+        assert_eq!(
+            value.checked_convert::<typenum::N6>(),
+            Some(value.convert::<typenum::N6>()),
+        );
+    }
 }
