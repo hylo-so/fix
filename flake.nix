@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url      = "github:NixOS/nixpkgs/25.11";
-    rust-overlay.url = "github:oxalica/rust-overlay/bc00300f010275e46feb3c3974df6587ff7b7808";
+    rust-overlay.url = "github:oxalica/rust-overlay/2859683cd9ef7858d324c5399b0d8d6652bf4044";
     flake-parts.url  = "github:hercules-ci/flake-parts";
   };
 
@@ -25,7 +25,7 @@
           buildInputs = [
             openssl
             pkg-config
-            (rust-bin.stable."1.86.0".default.override {
+            (rust-bin.stable."1.88.0".default.override {
               extensions = [ "rust-analyzer" "rust-src" ];
             })
           ];
