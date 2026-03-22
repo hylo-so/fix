@@ -74,7 +74,7 @@ pub mod prelude;
 pub mod util;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
-use core::fmt::{Debug, Error, Formatter};
+use core::fmt::{Debug, Display, Error, Formatter};
 use core::hash::{Hash, Hasher};
 use core::marker::PhantomData;
 use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
@@ -83,7 +83,7 @@ use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 use muldiv::MulDiv;
 use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, SaturatingAdd, SaturatingSub};
 use paste::paste;
-use typenum::consts::Z0;
+use typenum::consts::{U10, Z0};
 use typenum::marker_traits::{Bit, Integer, Unsigned};
 use typenum::operator_aliases::{AbsVal, Diff, Le, Sum};
 use typenum::type_operators::{Abs, IsLess};
@@ -341,6 +341,33 @@ where
 {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{:?}x{}^{}", self.bits, Base::to_u64(), Exp::to_i64())
+    }
+}
+
+impl<Bits, Exp> Display for Fix<Bits, U10, Exp>
+where
+    Bits: Display,
+    Exp: Integer,
+{
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        let exp = Exp::to_i32();
+        let decimals = usize::try_from(exp.unsigned_abs()).map_err(|_| Error)?;
+        let raw = self.bits.to_string();
+        let (sign, digits) = raw
+            .strip_prefix('-')
+            .map_or(("", raw.as_str()), |d| ("-", d));
+
+        match exp {
+            0.. => write!(f, "{sign}{digits}{}", "0".repeat(decimals)),
+            _ if digits.len() > decimals => {
+                let (integer, fraction) = digits.split_at(digits.len() - decimals);
+                write!(f, "{sign}{integer}.{fraction}")
+            }
+            _ => {
+                let padding = "0".repeat(decimals - digits.len());
+                write!(f, "{sign}0.{padding}{digits}")
+            }
+        }
     }
 }
 
@@ -644,7 +671,9 @@ where
 #[cfg(test)]
 mod tests {
     use num_traits::{SaturatingAdd, SaturatingSub};
+    use typenum::{N3, P3, Z0};
 
+    use crate::aliases::decimal::{IFix64, UFix64};
     use crate::aliases::si::{Kilo, Micro, Milli, Nano, Unit};
     use crate::util::FixExt;
     use crate::{CheckedAdd, CheckedDivFix, CheckedMulFix, CheckedSub, MulDiv};
@@ -959,5 +988,28 @@ mod tests {
             value.checked_convert::<typenum::N6>(),
             Some(value.convert::<typenum::N6>()),
         );
+    }
+
+    #[test]
+    fn display_negative_exp() {
+        assert_eq!(UFix64::<N3>::new(1_234).to_string(), "1.234");
+        assert_eq!(UFix64::<N3>::new(1).to_string(), "0.001");
+        assert_eq!(UFix64::<N3>::new(0).to_string(), "0.000");
+    }
+
+    #[test]
+    fn display_negative_exp_signed() {
+        assert_eq!(IFix64::<N3>::new(-1_234).to_string(), "-1.234");
+        assert_eq!(IFix64::<N3>::new(-1).to_string(), "-0.001");
+    }
+
+    #[test]
+    fn display_positive_exp() {
+        assert_eq!(UFix64::<P3>::new(5).to_string(), "5000");
+    }
+
+    #[test]
+    fn display_zero_exp() {
+        assert_eq!(UFix64::<Z0>::new(42).to_string(), "42");
     }
 }
