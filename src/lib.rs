@@ -81,7 +81,9 @@ use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
 use muldiv::MulDiv;
-use num_traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, SaturatingAdd, SaturatingSub};
+use num_traits::{
+    CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, ConstZero, SaturatingAdd, SaturatingSub,
+};
 use paste::paste;
 use typenum::consts::{U10, Z0};
 use typenum::marker_traits::{Bit, Integer, Unsigned};
@@ -313,11 +315,11 @@ where
 
 impl<Bits, Base, Exp> Fix<Bits, Base, Exp>
 where
-    Bits: Default,
+    Bits: ConstZero,
 {
     #[must_use]
-    pub fn zero() -> Self {
-        Self::default()
+    pub const fn zero() -> Self {
+        Self::constant(Bits::ZERO)
     }
 }
 
@@ -675,7 +677,6 @@ mod tests {
 
     use crate::aliases::decimal::{IFix64, UFix64};
     use crate::aliases::si::{Kilo, Micro, Milli, Nano, Unit};
-    use crate::util::FixExt;
     use crate::{CheckedAdd, CheckedDivFix, CheckedMulFix, CheckedSub, MulDiv};
 
     #[test]
