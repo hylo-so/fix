@@ -1,22 +1,50 @@
+use paste::paste;
+
 use crate::muldiv::MulDiv;
-use crate::typenum::consts::Z0;
-use crate::typenum::{Integer, IsLess, B1, U10};
-use crate::{Fix, FromUnsigned, Pow};
+use crate::typenum::{NInt, NonZero, Unsigned, U10};
+use crate::Fix;
 
 /// Domain specific extensions to the `Fix` type as it's used in this project.
 pub trait FixExt: Sized {
     /// This precision's equivalent of 1.
-    fn one() -> Self;
+    const ONE: Self;
 }
 
-impl<Bits, Exp> FixExt for Fix<Bits, U10, Exp>
+macro_rules! impl_fix_ext {
+    ($bits:ident) => {
+        paste! {
+            impl<U> FixExt for Fix<$bits, U10, NInt<U>>
+            where
+                U: Unsigned + NonZero,
+            {
+                const ONE: Self =
+                    Fix::constant((10 as $bits).pow(U::U32));
+            }
+        }
+    };
+}
+
+impl_fix_ext!(u8);
+impl_fix_ext!(u16);
+impl_fix_ext!(u32);
+impl_fix_ext!(u64);
+impl_fix_ext!(u128);
+impl_fix_ext!(usize);
+impl_fix_ext!(i8);
+impl_fix_ext!(i16);
+impl_fix_ext!(i32);
+impl_fix_ext!(i64);
+impl_fix_ext!(i128);
+impl_fix_ext!(isize);
+
+impl<Bits, Base, Exp> Fix<Bits, Base, Exp>
 where
-    Bits: FromUnsigned + Pow,
-    Exp: Integer + IsLess<Z0, Output = B1>,
+    Self: FixExt,
 {
-    fn one() -> Self {
-        let base = Bits::from_unsigned::<U10>();
-        Fix::new(base.pow(Exp::to_i32().unsigned_abs()))
+    /// This precision's equivalent of 1.
+    #[must_use]
+    pub const fn one() -> Self {
+        <Self as FixExt>::ONE
     }
 }
 
