@@ -11,7 +11,7 @@ macro_rules! impl_fix_value {
         paste! {
            /// A value-space `Fix` where base is always 10 and bits are a concrete type.
            /// Intended for serialized storage in Solana accounts where generics won't work.
-            #[derive(PartialEq, Eq, Copy, Clone, Debug, Serialize, Deserialize, AnchorSerialize, AnchorDeserialize, InitSpace)]
+            #[derive(PartialEq, Eq, Copy, Clone, Debug, Default, Serialize, Deserialize, AnchorSerialize, AnchorDeserialize, InitSpace)]
             pub struct [<$sign FixValue $bits>] {
                 pub bits: [<$sign:lower $bits>],
                 pub exp: i8,
