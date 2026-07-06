@@ -1,10 +1,14 @@
-use crate::typenum::{Integer, U10};
-use crate::Fix;
+use core::fmt::{self, Display, Formatter};
+use std::error::Error;
 
+use anchor_lang::error::Error as AnchorError;
 use anchor_lang::error::ErrorCode::InvalidNumericConversion;
 use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, InitSpace};
 use paste::paste;
 use serde::{Deserialize, Serialize};
+
+use crate::typenum::{Integer, U10};
+use crate::Fix;
 
 /// Exponent mismatch converting a `FixValue` into a typed `Fix`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,20 +17,20 @@ pub struct ExponentMismatch {
     pub actual: i8,
 }
 
-impl core::fmt::Display for ExponentMismatch {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl Display for ExponentMismatch {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "expected exponent {}, got {}",
+            "Exponent mismatch converting `FixValue` to `Fix`: expected: {}, got: {}.",
             self.expected, self.actual
         )
     }
 }
 
-impl std::error::Error for ExponentMismatch {}
+impl Error for ExponentMismatch {}
 
-impl From<ExponentMismatch> for anchor_lang::error::Error {
-    fn from(_: ExponentMismatch) -> anchor_lang::error::Error {
+impl From<ExponentMismatch> for AnchorError {
+    fn from(_: ExponentMismatch) -> AnchorError {
         InvalidNumericConversion.into()
     }
 }
