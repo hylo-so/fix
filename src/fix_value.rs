@@ -1,10 +1,39 @@
+use core::fmt::{self, Display, Formatter};
+use std::error::Error;
+
+use anchor_lang::error::Error as AnchorError;
+use anchor_lang::error::ErrorCode::InvalidNumericConversion;
+use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, InitSpace};
+use paste::paste;
+use serde::{Deserialize, Serialize};
+
 use crate::typenum::{Integer, U10};
 use crate::Fix;
 
-use anchor_lang::error::ErrorCode::InvalidNumericConversion;
-use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, InitSpace, Result};
-use paste::paste;
-use serde::{Deserialize, Serialize};
+/// Exponent mismatch converting a `FixValue` into a typed `Fix`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ExponentMismatch {
+    pub expected: i8,
+    pub actual: i8,
+}
+
+impl Display for ExponentMismatch {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Exponent mismatch converting `FixValue` to `Fix`: expected: {}, got: {}.",
+            self.expected, self.actual
+        )
+    }
+}
+
+impl Error for ExponentMismatch {}
+
+impl From<ExponentMismatch> for AnchorError {
+    fn from(_: ExponentMismatch) -> AnchorError {
+        InvalidNumericConversion.into()
+    }
+}
 
 macro_rules! impl_fix_value {
     ($sign:ident, $bits:expr) => {
@@ -41,12 +70,14 @@ macro_rules! impl_fix_value {
                 Bits: From<[<$sign:lower $bits>]>,
                 Exp: Integer,
             {
-              type Error = anchor_lang::error::Error;
-              fn try_from(value: [<$sign FixValue $bits>]) -> Result<Fix<Bits, U10, Exp>> {
+              type Error = ExponentMismatch;
+              fn try_from(
+                  value: [<$sign FixValue $bits>],
+              ) -> Result<Fix<Bits, U10, Exp>, ExponentMismatch> {
                 if value.exp == Exp::to_i8() {
                   Ok(Fix::new(value.bits.into()))
                 } else {
-                  Err(InvalidNumericConversion.into())
+                  Err(ExponentMismatch { expected: Exp::to_i8(), actual: value.exp })
                 }
               }
             }
@@ -96,7 +127,10 @@ mod tests {
                 fn [<wrong_exp_should_fail_ $sign:lower $bits>]() -> Result<()> {
                     let pow11 = [<$sign FixValue $bits>]::new(42, -11);
                     let wrong = TryInto::<Kilo<[<$sign:lower $bits>]>>::try_into(pow11);
-                    Ok(assert_eq!(Err(InvalidNumericConversion.into()), wrong))
+                    Ok(assert_eq!(
+                        Err(ExponentMismatch { expected: 3, actual: -11 }),
+                        wrong
+                    ))
                 }
             }
         };
