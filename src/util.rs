@@ -69,4 +69,21 @@ where
         let source_one = Self::one();
         target_one.mul_div_floor(self, source_one)
     }
+
+    /// Converts to another _Exp_ rounding up, returning `None` on overflow.
+    ///
+    /// ```
+    /// use fix::prelude::*;
+    /// let source = UFix64::<N6>::new(5_001u64);
+    /// let target = source.checked_convert_ceil::<N3>();
+    /// assert_eq!(target, Some(UFix64::<N3>::new(6u64)));
+    /// ```
+    pub fn checked_convert_ceil<ToExp>(self) -> Option<Fix<Bits, U10, ToExp>>
+    where
+        Fix<Bits, U10, ToExp>: FixExt,
+    {
+        let target_one = Fix::<Bits, U10, ToExp>::one();
+        let source_one = Self::one();
+        target_one.mul_div_ceil(self, source_one)
+    }
 }

@@ -992,6 +992,38 @@ mod tests {
     }
 
     #[test]
+    fn checked_convert_ceil_downconvert_rounds_up() {
+        assert_eq!(
+            Micro::new(5_001u64).checked_convert_ceil(),
+            Some(Milli::new(6u64)),
+        );
+    }
+
+    #[test]
+    fn checked_convert_ceil_exact_matches_floor() {
+        assert_eq!(
+            Micro::new(5_000u64).checked_convert_ceil(),
+            Some(Milli::new(5u64)),
+        );
+    }
+
+    #[test]
+    fn checked_convert_ceil_upconvert() {
+        assert_eq!(
+            Milli::new(5u64).checked_convert_ceil(),
+            Some(Micro::new(5_000u64)),
+        );
+    }
+
+    #[test]
+    fn checked_convert_ceil_overflow() {
+        assert_eq!(
+            Milli::new(u64::MAX).checked_convert_ceil::<typenum::N9>(),
+            None,
+        );
+    }
+
+    #[test]
     fn display_negative_exp() {
         assert_eq!(UFix64::<N3>::new(1_234).to_string(), "1.234");
         assert_eq!(UFix64::<N3>::new(1).to_string(), "0.001");
