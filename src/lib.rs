@@ -66,6 +66,8 @@
 
 pub extern crate muldiv;
 pub extern crate num_traits;
+#[cfg(feature = "typed-floats")]
+pub extern crate typed_floats;
 pub extern crate typenum;
 
 pub mod aliases;
