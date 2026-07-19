@@ -1,7 +1,9 @@
 use paste::paste;
+#[cfg(feature = "typed-floats")]
+use typed_floats::StrictlyPositiveFinite;
 
 use crate::muldiv::MulDiv;
-use crate::typenum::{NInt, NonZero, Unsigned, U10};
+use crate::typenum::{Integer, NInt, NonZero, Unsigned, U10};
 use crate::Fix;
 
 /// Domain specific extensions to the `Fix` type as it's used in this project.
@@ -48,6 +50,40 @@ where
     }
 }
 
+macro_rules! impl_to_f64 {
+    ($bits:ident) => {
+        impl<Exp: Integer> Fix<$bits, U10, Exp> {
+            /// Approximate `f64` value of this fixed-point number.
+            ///
+            /// Precision loss above 2^53 bits; intended for offchain
+            /// analytics, never for onchain math.
+            ///
+            /// ```
+            /// use fix::prelude::*;
+            /// let x = UFix64::<N6>::new(1_500_000u64);
+            /// assert!((x.to_f64() - 1.5).abs() < f64::EPSILON);
+            /// ```
+            #[must_use]
+            #[allow(clippy::cast_precision_loss)]
+            pub fn to_f64(self) -> f64 {
+                self.bits as f64 * 10f64.powi(Exp::to_i32())
+            }
+        }
+    };
+}
+
+impl_to_f64!(u64);
+impl_to_f64!(i64);
+
+#[cfg(feature = "typed-floats")]
+impl<Exp: Integer> Fix<u64, U10, Exp> {
+    /// Strictly positive finite `f64` view; `None` when zero.
+    #[must_use]
+    pub fn to_positive_f64(self) -> Option<StrictlyPositiveFinite> {
+        StrictlyPositiveFinite::try_from(self.to_f64()).ok()
+    }
+}
+
 impl<Bits, Exp> Fix<Bits, U10, Exp>
 where
     Self: FixExt,
@@ -85,5 +121,47 @@ where
         let target_one = Fix::<Bits, U10, ToExp>::one();
         let source_one = Self::one();
         target_one.mul_div_ceil(self, source_one)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::aliases::decimal::{IFix64, UFix64};
+    #[cfg(feature = "typed-floats")]
+    use crate::typenum::N6;
+    use crate::typenum::{N3, N9};
+
+    #[test]
+    fn to_f64_small_bits_exact() {
+        let x = UFix64::<N3>::new(1_500u64);
+        assert!((x.to_f64() - 1.5).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn to_f64_negative_bits_and_exp() {
+        let x = IFix64::<N9>::new(-975i64);
+        assert!((x.to_f64() - -9.75e-7).abs() < 1e-21);
+    }
+
+    #[test]
+    #[allow(clippy::excessive_precision)]
+    fn to_f64_max_bits_relative_error() {
+        let got = UFix64::<N9>::new(u64::MAX).to_f64();
+        let expected = 18_446_744_073.709_551_615_f64;
+        assert!(((got - expected) / expected).abs() < 1e-15);
+    }
+
+    #[cfg(feature = "typed-floats")]
+    #[test]
+    fn to_positive_f64_zero_is_none() {
+        assert!(UFix64::<N6>::zero().to_positive_f64().is_none());
+    }
+
+    #[cfg(feature = "typed-floats")]
+    #[test]
+    fn to_positive_f64_nonzero_is_some() {
+        let x = UFix64::<N6>::new(2_500_000u64);
+        let positive = x.to_positive_f64().map(f64::from);
+        assert_eq!(positive, Some(x.to_f64()));
     }
 }
