@@ -164,6 +164,18 @@ where
         }
     }
 
+    /// Multiplies by `rhs` at the same precision, rounding down.
+    /// `None` on overflow.
+    ///
+    /// ```
+    /// use fix::prelude::*;
+    /// let a = UFix64::<N3>::new(1_001u64);
+    /// assert_eq!(a.mul_floor(a), Some(UFix64::<N3>::new(1_002u64)));
+    /// ```
+    pub fn mul_floor(self, rhs: Self) -> Option<Self> {
+        self.mul_div_floor(rhs, Self::one())
+    }
+
     /// Multiplies by `rhs` at the same precision, rounding up.
     /// `None` on overflow.
     ///
@@ -254,6 +266,25 @@ mod tests {
         let b = IFix64::<N3>::new(3_000i64);
         assert_eq!(a.div_floor(b), Some(IFix64::<N3>::new(-3_334i64)));
         assert_eq!(a.div_ceil(b), Some(IFix64::<N3>::new(-3_333i64)));
+    }
+
+    #[test]
+    fn mul_floor_rounds_down() {
+        let a = UFix64::<N3>::new(1_001u64);
+        assert_eq!(a.mul_floor(a), Some(UFix64::<N3>::new(1_002u64)));
+    }
+
+    #[test]
+    fn mul_floor_exact() {
+        let a = UFix64::<N3>::new(2_000u64);
+        let b = UFix64::<N3>::new(1_500u64);
+        assert_eq!(a.mul_floor(b), Some(UFix64::<N3>::new(3_000u64)));
+    }
+
+    #[test]
+    fn mul_floor_overflow_is_none() {
+        let a = UFix64::<N3>::new(u64::MAX);
+        assert_eq!(a.mul_floor(a), None);
     }
 
     #[test]
