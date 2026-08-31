@@ -1,8 +1,11 @@
 use core::fmt::{self, Display, Formatter};
 use std::error::Error;
 
+#[cfg(feature = "anchor")]
 use anchor_lang::error::Error as AnchorError;
+#[cfg(feature = "anchor")]
 use anchor_lang::error::ErrorCode::InvalidNumericConversion;
+#[cfg(feature = "anchor")]
 use anchor_lang::prelude::{borsh, AnchorDeserialize, AnchorSerialize, InitSpace};
 use paste::paste;
 use serde::{Deserialize, Serialize};
@@ -29,6 +32,7 @@ impl Display for ExponentMismatch {
 
 impl Error for ExponentMismatch {}
 
+#[cfg(feature = "anchor")]
 impl From<ExponentMismatch> for AnchorError {
     fn from(_: ExponentMismatch) -> AnchorError {
         InvalidNumericConversion.into()
@@ -40,7 +44,11 @@ macro_rules! impl_fix_value {
         paste! {
            /// A value-space `Fix` where base is always 10 and bits are a concrete type.
            /// Intended for serialized storage in Solana accounts where generics won't work.
-            #[derive(PartialEq, Eq, Copy, Clone, Debug, Default, Serialize, Deserialize, AnchorSerialize, AnchorDeserialize, InitSpace)]
+            #[derive(PartialEq, Eq, Copy, Clone, Debug, Default, Serialize, Deserialize)]
+            #[cfg_attr(
+                feature = "anchor",
+                derive(AnchorSerialize, AnchorDeserialize, InitSpace)
+            )]
             pub struct [<$sign FixValue $bits>] {
                 pub bits: [<$sign:lower $bits>],
                 pub exp: i8,
@@ -101,6 +109,7 @@ mod tests {
     use super::*;
     use crate::aliases::si::Kilo;
     use anyhow::Result;
+    #[cfg(feature = "anchor")]
     use borsh::to_vec;
 
     macro_rules! fix_value_tests {
@@ -115,6 +124,7 @@ mod tests {
                     Ok(assert_eq!(start, back))
                 }
 
+                #[cfg(feature = "anchor")]
                 #[test]
                 fn [<roundtrip_serialize_ $sign:lower $bits>]() -> Result<()> {
                     let start = [<$sign FixValue $bits>]::new(20, -2);
