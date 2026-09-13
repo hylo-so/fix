@@ -62,7 +62,13 @@
 //!
 //! This crate is `no_std`.
 
-//#![no_std]
+#![no_std]
+
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(feature = "alloc")]
+extern crate alloc;
 
 pub extern crate muldiv;
 pub extern crate num_traits;
@@ -76,7 +82,9 @@ pub mod prelude;
 pub mod util;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
-use core::fmt::{Debug, Display, Error, Formatter};
+#[cfg(feature = "alloc")]
+use core::fmt::Display;
+use core::fmt::{Debug, Error, Formatter};
 use core::hash::{Hash, Hasher};
 use core::marker::PhantomData;
 use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
@@ -87,7 +95,12 @@ use num_traits::{
     CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, ConstZero, SaturatingAdd, SaturatingSub,
 };
 use paste::paste;
-use typenum::consts::{U10, Z0};
+#[cfg(feature = "alloc")]
+use typenum::consts::U10;
+use typenum::consts::Z0;
+
+#[cfg(feature = "alloc")]
+use alloc::string::ToString;
 use typenum::marker_traits::{Bit, Integer, Unsigned};
 use typenum::operator_aliases::{AbsVal, Diff, Le, Sum};
 use typenum::type_operators::{Abs, IsLess};
@@ -348,6 +361,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<Bits, Exp> Display for Fix<Bits, U10, Exp>
 where
     Bits: Display,
@@ -674,6 +688,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "alloc")]
+    use alloc::string::ToString;
+
     use num_traits::{SaturatingAdd, SaturatingSub};
     use typenum::{N3, P3, Z0};
 
@@ -1025,6 +1042,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn display_negative_exp() {
         assert_eq!(UFix64::<N3>::new(1_234).to_string(), "1.234");
@@ -1032,17 +1050,20 @@ mod tests {
         assert_eq!(UFix64::<N3>::new(0).to_string(), "0.000");
     }
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn display_negative_exp_signed() {
         assert_eq!(IFix64::<N3>::new(-1_234).to_string(), "-1.234");
         assert_eq!(IFix64::<N3>::new(-1).to_string(), "-0.001");
     }
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn display_positive_exp() {
         assert_eq!(UFix64::<P3>::new(5).to_string(), "5000");
     }
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn display_zero_exp() {
         assert_eq!(UFix64::<Z0>::new(42).to_string(), "42");

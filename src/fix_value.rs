@@ -1,5 +1,10 @@
+use core::error::Error;
 use core::fmt::{self, Display, Formatter};
-use std::error::Error;
+
+#[cfg(feature = "std")]
+use std::string::String;
+#[cfg(feature = "std")]
+use std::{format, vec};
 
 #[cfg(feature = "anchor")]
 use anchor_lang::error::Error as AnchorError;

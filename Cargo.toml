@@ -1,6 +1,6 @@
 [package]
 name = "hylo-fix"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2021"
 description = "Fixed-point number types with Solana Anchor support"
 authors = ["0xPlish <plish@hylo.so>", "Curtis McEnroe <programble@gmail.com>"]
@@ -14,17 +14,21 @@ categories = ["data-structures"]
 name = "fix"
 
 [features]
-default = ["anchor"]
+default = ["anchor", "std"]
+alloc = []
+std = ["alloc", "num-traits/std", "serde/std", "typed_floats?/std"]
 anchor = ["dep:anchor-lang"]
 idl-build = ["anchor", "anchor-lang/idl-build"]
 typed-floats = ["dep:typed_floats"]
 
 [dependencies]
 anchor-lang = { version = "0.32", optional = true }
-anyhow = "1.0.82"
-muldiv = "1.0.1"
-num-traits = "0.2.17"
+muldiv = { version = "1.0.1", default-features = false }
+num-traits = { version = "0.2.17", default-features = false }
 paste = "1.0.14"
-serde = { version = "1.0.224", features = ["derive"] }
-typed_floats = { version = "1.0.7", optional = true }
+serde = { version = "1.0.224", default-features = false, features = ["derive"] }
+typed_floats = { version = "1.0.7", default-features = false, optional = true }
 typenum = { version = "1.17.0", features = ["i128"] }
+
+[dev-dependencies]
+anyhow = "1.0.82"

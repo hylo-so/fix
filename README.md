@@ -10,13 +10,17 @@ Fixed-point number types with Solana Anchor support.
 
 ## Cargo features
 
+* `std` *(enabled by default)* — standard-library support, including decimal
+  formatting.
+* `alloc` — allocation-backed functionality, including decimal formatting,
+  without requiring the full standard library.
 * `anchor` *(enabled by default)* — Solana Anchor support: Borsh
   serialization and account-space derives for on-chain storage.
 * `idl-build` — Anchor IDL generation. Implies `anchor`.
 * `typed-floats` — floating-point conversions via the `typed_floats`
   crate.
 
-Anchor support can be disabled for use outside Solana:
+This crate supports `no-std`:
 
 ```toml
 [dependencies]
