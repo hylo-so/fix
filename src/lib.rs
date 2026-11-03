@@ -78,6 +78,7 @@ pub extern crate typenum;
 
 pub mod aliases;
 pub mod fix_value;
+mod kernel;
 pub mod prelude;
 pub mod util;
 
@@ -90,6 +91,7 @@ use core::marker::PhantomData;
 use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
+use kernel::{DivKernel, MulDivKernel, Round};
 use muldiv::MulDiv;
 use num_traits::{
     CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, ConstZero, SaturatingAdd, SaturatingSub,
@@ -189,12 +191,10 @@ impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
 
         // FIXME: Would like to do this with typenum::Pow, but that
         // seems to result in overflow evaluating requirements.
-        let ratio = base.pow(diff.unsigned_abs());
-
         if inverse {
-            Fix::new(self.bits / ratio)
+            Fix::new(self.bits.div_pow(base, diff.unsigned_abs()))
         } else {
-            Fix::new(self.bits * ratio)
+            Fix::new(self.bits * base.pow(diff.unsigned_abs()))
         }
     }
 
@@ -280,15 +280,34 @@ pub trait Pow {
     /// Raises `self` to the power of `exp`.
     #[must_use]
     fn pow(self, exp: u32) -> Self;
+
+    /// `self / base.pow(exp)`, the downward scale change in [`Fix::convert`].
+    /// Signed and `u128` division are library calls on Solana's SBF target,
+    /// so those widths override this with a division in native instructions.
+    #[doc(hidden)]
+    #[must_use]
+    fn div_pow(self, base: Self, exp: u32) -> Self
+    where
+        Self: Sized + Div<Output = Self>,
+    {
+        self / base.pow(exp)
+    }
 }
 
 macro_rules! impl_pow {
-    ($ty:ident) => {
+    ($ty:ident $(, $div:expr)?) => {
         impl Pow for $ty {
             #[inline]
             fn pow(self, exp: u32) -> Self {
                 self.pow(exp)
             }
+
+            $(
+                #[inline]
+                fn div_pow(self, base: Self, exp: u32) -> Self {
+                    $div(self, base.pow(exp))
+                }
+            )?
         }
     };
 }
@@ -302,7 +321,7 @@ impl_pow!(usize);
 impl_pow!(i8);
 impl_pow!(i16);
 impl_pow!(i32);
-impl_pow!(i64);
+impl_pow!(i64, kernel::div_i64);
 impl_pow!(i128);
 impl_pow!(isize);
 
@@ -666,6 +685,67 @@ where
     }
 }
 
+/// [`MulDiv`] through the crate's own kernel, which runs in native
+/// instructions on Solana's SBF target where `muldiv`'s `u128` arithmetic
+/// is synthesized in software. Inherent so concrete callers pick it up
+/// unchanged; the `MulDiv` impl for `Fix` still serves generic code.
+impl<Bits, Base, LExp> Fix<Bits, Base, LExp>
+where
+    Bits: MulDivKernel,
+{
+    /// `floor(self * num / denom)`; see [`MulDiv::mul_div_floor`].
+    pub fn mul_div_floor<RExp>(
+        self,
+        num: Fix<Bits, Base, RExp>,
+        denom: Fix<Bits, Base, RExp>,
+    ) -> Option<Self> {
+        self.bits
+            .mul_div(num.bits, denom.bits, Round::Floor)
+            .map(Self::new)
+    }
+
+    /// `round(self * num / denom)`; see [`MulDiv::mul_div_round`].
+    pub fn mul_div_round<RExp>(
+        self,
+        num: Fix<Bits, Base, RExp>,
+        denom: Fix<Bits, Base, RExp>,
+    ) -> Option<Self> {
+        self.bits
+            .mul_div(num.bits, denom.bits, Round::Nearest)
+            .map(Self::new)
+    }
+
+    /// `ceil(self * num / denom)`; see [`MulDiv::mul_div_ceil`].
+    pub fn mul_div_ceil<RExp>(
+        self,
+        num: Fix<Bits, Base, RExp>,
+        denom: Fix<Bits, Base, RExp>,
+    ) -> Option<Self> {
+        self.bits
+            .mul_div(num.bits, denom.bits, Round::Ceil)
+            .map(Self::new)
+    }
+}
+
+/// [`CheckedDivFix::checked_div`] through the crate's own kernel, for
+/// the same reason as the `mul_div` methods above.
+impl<Bits, Base, LExp> Fix<Bits, Base, LExp>
+where
+    Bits: DivKernel,
+{
+    /// `self / v` rounding toward zero; see [`CheckedDivFix::checked_div`].
+    pub fn checked_div<RExp>(
+        &self,
+        v: &Fix<Bits, Base, RExp>,
+    ) -> Option<Fix<Bits, Base, Diff<LExp, RExp>>>
+    where
+        Bits: Copy,
+        LExp: Sub<RExp>,
+    {
+        self.bits.checked_div(v.bits).map(Fix::new)
+    }
+}
+
 // Saturating arithmetic.
 
 impl<Bits, Base, Exp> SaturatingAdd for Fix<Bits, Base, Exp>
@@ -696,7 +776,7 @@ mod tests {
 
     use crate::aliases::decimal::{IFix64, UFix64};
     use crate::aliases::si::{Kilo, Micro, Milli, Nano, Unit};
-    use crate::{CheckedAdd, CheckedDivFix, CheckedMulFix, CheckedSub, MulDiv};
+    use crate::{CheckedAdd, CheckedMulFix, CheckedSub};
 
     #[test]
     fn convert_milli_to_kilo() {

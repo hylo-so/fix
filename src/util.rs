@@ -11,10 +11,30 @@ use crate::Fix;
 pub trait FixExt: Sized {
     /// This precision's equivalent of 1.
     const ONE: Self;
+
+    /// Same result as [`MulDiv::mul_div_floor`], through the crate's own
+    /// kernel where one exists for `Self`.
+    #[doc(hidden)]
+    fn mul_div_floor_kernel(self, num: Self, denom: Self) -> Option<Self>
+    where
+        Self: MulDiv<Output = Self>,
+    {
+        self.mul_div_floor(num, denom)
+    }
+
+    /// Same result as [`MulDiv::mul_div_ceil`], through the crate's own
+    /// kernel where one exists for `Self`.
+    #[doc(hidden)]
+    fn mul_div_ceil_kernel(self, num: Self, denom: Self) -> Option<Self>
+    where
+        Self: MulDiv<Output = Self>,
+    {
+        self.mul_div_ceil(num, denom)
+    }
 }
 
 macro_rules! impl_fix_ext {
-    ($bits:ident) => {
+    ($bits:ident $(, $floor:ident, $ceil:ident)?) => {
         paste! {
             impl<U> FixExt for Fix<$bits, U10, NInt<U>>
             where
@@ -22,6 +42,16 @@ macro_rules! impl_fix_ext {
             {
                 const ONE: Self =
                     Fix::constant((10 as $bits).pow(U::U32));
+
+                $(
+                    fn mul_div_floor_kernel(self, num: Self, denom: Self) -> Option<Self> {
+                        self.$floor(num, denom)
+                    }
+
+                    fn mul_div_ceil_kernel(self, num: Self, denom: Self) -> Option<Self> {
+                        self.$ceil(num, denom)
+                    }
+                )?
             }
         }
     };
@@ -30,13 +60,13 @@ macro_rules! impl_fix_ext {
 impl_fix_ext!(u8);
 impl_fix_ext!(u16);
 impl_fix_ext!(u32);
-impl_fix_ext!(u64);
+impl_fix_ext!(u64, mul_div_floor, mul_div_ceil);
 impl_fix_ext!(u128);
 impl_fix_ext!(usize);
 impl_fix_ext!(i8);
 impl_fix_ext!(i16);
 impl_fix_ext!(i32);
-impl_fix_ext!(i64);
+impl_fix_ext!(i64, mul_div_floor, mul_div_ceil);
 impl_fix_ext!(i128);
 impl_fix_ext!(isize);
 
@@ -110,7 +140,9 @@ where
     {
         let target_one = Fix::<Bits, U10, ToExp>::one();
         let source_one = Self::one();
-        target_one.mul_div_floor(self, source_one)
+        Self::new(target_one.bits)
+            .mul_div_floor_kernel(self, source_one)
+            .map(|fix| Fix::new(fix.bits))
     }
 
     /// Converts to another _Exp_ rounding up, returning `None` on overflow.
@@ -127,7 +159,9 @@ where
     {
         let target_one = Fix::<Bits, U10, ToExp>::one();
         let source_one = Self::one();
-        target_one.mul_div_ceil(self, source_one)
+        Self::new(target_one.bits)
+            .mul_div_ceil_kernel(self, source_one)
+            .map(|fix| Fix::new(fix.bits))
     }
 
     /// Divides by `rhs` at the same precision, rounding down.
@@ -146,7 +180,7 @@ where
         if rhs == Self::zero() {
             None
         } else {
-            self.mul_div_floor(Self::one(), rhs)
+            self.mul_div_floor_kernel(Self::one(), rhs)
         }
     }
 
@@ -166,7 +200,7 @@ where
         if rhs == Self::zero() {
             None
         } else {
-            self.mul_div_ceil(Self::one(), rhs)
+            self.mul_div_ceil_kernel(Self::one(), rhs)
         }
     }
 
@@ -179,7 +213,7 @@ where
     /// assert_eq!(a.mul_floor(a), Some(UFix64::<N3>::new(1_002u64)));
     /// ```
     pub fn mul_floor(self, rhs: Self) -> Option<Self> {
-        self.mul_div_floor(rhs, Self::one())
+        self.mul_div_floor_kernel(rhs, Self::one())
     }
 
     /// Multiplies by `rhs` at the same precision, rounding up.
@@ -191,7 +225,7 @@ where
     /// assert_eq!(a.mul_ceil(a), Some(UFix64::<N3>::new(1_003u64)));
     /// ```
     pub fn mul_ceil(self, rhs: Self) -> Option<Self> {
-        self.mul_div_ceil(rhs, Self::one())
+        self.mul_div_ceil_kernel(rhs, Self::one())
     }
 }
 
