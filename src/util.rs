@@ -229,6 +229,81 @@ where
     }
 }
 
+/// `checked_convert`, `div_floor` and the other scale helpers for
+/// `Fix<u128>` and `Fix<i128>`, which `muldiv` does not cover.
+pub trait MulDivExt: Sized {
+    /// The underlying integer type.
+    type Bits;
+    /// Converts to another _Exp_ rounding down, returning `None` on overflow.
+    fn checked_convert<ToExp>(self) -> Option<Fix<Self::Bits, U10, ToExp>>
+    where
+        Fix<Self::Bits, U10, ToExp>: FixExt;
+    /// Converts to another _Exp_ rounding up, returning `None` on overflow.
+    fn checked_convert_ceil<ToExp>(self) -> Option<Fix<Self::Bits, U10, ToExp>>
+    where
+        Fix<Self::Bits, U10, ToExp>: FixExt;
+    /// Divides at the same precision rounding down; `None` on overflow or zero.
+    fn div_floor(self, rhs: Self) -> Option<Self>;
+    /// Divides at the same precision rounding up; `None` on overflow or zero.
+    fn div_ceil(self, rhs: Self) -> Option<Self>;
+    /// Multiplies at the same precision rounding down; `None` on overflow.
+    fn mul_floor(self, rhs: Self) -> Option<Self>;
+    /// Multiplies at the same precision rounding up; `None` on overflow.
+    fn mul_ceil(self, rhs: Self) -> Option<Self>;
+}
+
+macro_rules! impl_mul_div_ext {
+    ($bits:ident) => {
+        impl<Exp> MulDivExt for Fix<$bits, U10, Exp>
+        where
+            Self: FixExt,
+        {
+            type Bits = $bits;
+
+            fn checked_convert<ToExp>(self) -> Option<Fix<$bits, U10, ToExp>>
+            where
+                Fix<$bits, U10, ToExp>: FixExt,
+            {
+                Fix::<$bits, U10, ToExp>::one().mul_div_floor(self, Self::one())
+            }
+
+            fn checked_convert_ceil<ToExp>(self) -> Option<Fix<$bits, U10, ToExp>>
+            where
+                Fix<$bits, U10, ToExp>: FixExt,
+            {
+                Fix::<$bits, U10, ToExp>::one().mul_div_ceil(self, Self::one())
+            }
+
+            fn div_floor(self, rhs: Self) -> Option<Self> {
+                if rhs == Self::zero() {
+                    None
+                } else {
+                    self.mul_div_floor(Self::one(), rhs)
+                }
+            }
+
+            fn div_ceil(self, rhs: Self) -> Option<Self> {
+                if rhs == Self::zero() {
+                    None
+                } else {
+                    self.mul_div_ceil(Self::one(), rhs)
+                }
+            }
+
+            fn mul_floor(self, rhs: Self) -> Option<Self> {
+                self.mul_div_floor(rhs, Self::one())
+            }
+
+            fn mul_ceil(self, rhs: Self) -> Option<Self> {
+                self.mul_div_ceil(rhs, Self::one())
+            }
+        }
+    };
+}
+
+impl_mul_div_ext!(u128);
+impl_mul_div_ext!(i128);
+
 #[cfg(test)]
 mod tests {
     use crate::aliases::decimal::{IFix64, UFix64};
