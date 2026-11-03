@@ -349,3 +349,265 @@ macro_rules! signed_kernel {
 
 signed_kernel!(i64, u64);
 signed_kernel!(i128, u128);
+
+#[cfg(test)]
+mod tests {
+    use super::{MulDivKernel, Round};
+    use muldiv::MulDiv;
+
+    fn next(state: &mut u64) -> u64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        *state
+    }
+
+    fn sweep64(state: &mut u64, i: u64) -> u64 {
+        next(state) >> (i % 64)
+    }
+
+    fn sweep128(state: &mut u64, i: u64) -> u128 {
+        let x = (u128::from(next(state)) << 64) | u128::from(next(state));
+        x >> (i % 128)
+    }
+
+    fn rounded<T: MulDivKernel + Copy>(a: T, b: T, d: T) -> [Option<T>; 3] {
+        [Round::Floor, Round::Nearest, Round::Ceil].map(|round| a.mul_div(b, d, round))
+    }
+
+    fn by_muldiv<T: MulDiv<Output = T> + Copy>(a: T, b: T, d: T) -> [Option<T>; 3] {
+        [
+            a.mul_div_floor(b, d),
+            a.mul_div_round(b, d),
+            a.mul_div_ceil(b, d),
+        ]
+    }
+
+    fn wide_mul(a: u128, b: u128) -> (u128, u128) {
+        let word = u128::from(u64::MAX);
+        let (a_hi, a_lo) = (a >> 64, a & word);
+        let (b_hi, b_lo) = (b >> 64, b & word);
+        let ll = a_lo * b_lo;
+        let lh = a_lo * b_hi;
+        let hl = a_hi * b_lo;
+        let mid = (ll >> 64) + (lh & word) + (hl & word);
+        (
+            (a_hi * b_hi) + (lh >> 64) + (hl >> 64) + (mid >> 64),
+            (ll & word) | (mid << 64),
+        )
+    }
+
+    fn oracle_div(hi: u128, mut lo: u128, d: u128) -> Option<(u128, u128)> {
+        if hi >= d {
+            return None;
+        }
+        let (mut q, mut r) = (0u128, hi);
+        for _ in 0..128 {
+            let carry = r >> 127;
+            r = (r << 1) | (lo >> 127);
+            lo <<= 1;
+            q <<= 1;
+            if carry == 1 || r >= d {
+                r = r.wrapping_sub(d);
+                q |= 1;
+            }
+        }
+        Some((q, r))
+    }
+
+    fn oracle_u128(a: u128, b: u128, d: u128) -> Option<(u128, u128)> {
+        let (hi, lo) = wide_mul(a, b);
+        oracle_div(hi, lo, d)
+    }
+
+    #[test]
+    fn u64_matches_muldiv() {
+        let mut state = 0x6b65_726e_656c_3634;
+        for i in 0..2_000_000u64 {
+            let a = sweep64(&mut state, i);
+            let b = sweep64(&mut state, i / 64);
+            let d = sweep64(&mut state, i / 4096).max(1);
+            assert_eq!(rounded(a, b, d), by_muldiv(a, b, d), "{a} {b} {d}");
+        }
+    }
+
+    #[test]
+    fn i64_matches_muldiv() {
+        let edges = [0, 1, -1, i64::MAX, i64::MIN, i64::MAX - 1, i64::MIN + 1];
+        for &a in &edges {
+            for &b in &edges {
+                for &d in &edges {
+                    if d != 0 {
+                        assert_eq!(rounded(a, b, d), by_muldiv(a, b, d), "{a} {b} {d}");
+                    }
+                }
+            }
+        }
+        let mut state = 0x6b65_726e_656c_3635;
+        for i in 0..2_000_000u64 {
+            let a = sweep64(&mut state, i) as i64;
+            let b = sweep64(&mut state, i / 64) as i64;
+            let d = (sweep64(&mut state, i / 4096) as i64).max(1) * if i % 2 == 0 { 1 } else { -1 };
+            assert_eq!(rounded(a, b, d), by_muldiv(a, b, d), "{a} {b} {d}");
+        }
+    }
+
+    #[test]
+    fn u128_matches_oracle() {
+        fn check(a: u128, b: u128, d: u128) {
+            let expected = oracle_u128(a, b, d);
+            assert_eq!(super::mul_div_u128(a, b, d), expected, "{a} {b} {d}");
+            let [floor, nearest, ceil] = rounded(a, b, d);
+            let Some((q, r)) = expected else {
+                assert_eq!((floor, nearest, ceil), (None, None, None));
+                return;
+            };
+            assert_eq!(floor, Some(q));
+            assert_eq!(nearest, q.checked_add(u128::from(r >= d - (d >> 1))));
+            assert_eq!(ceil, q.checked_add(u128::from(r != 0)));
+        }
+        let edges = [
+            0,
+            1,
+            u128::MAX,
+            u128::MAX - 1,
+            u128::from(u64::MAX),
+            u128::from(u64::MAX) + 1,
+            1 << 127,
+        ];
+        for &a in &edges {
+            for &b in &edges {
+                for &d in &edges {
+                    if d != 0 {
+                        check(a, b, d);
+                    }
+                }
+            }
+        }
+        let mut state = 0x6b65_726e_656c_3132;
+        for i in 0..1_000_000u64 {
+            check(
+                sweep128(&mut state, i),
+                sweep128(&mut state, i / 128),
+                sweep128(&mut state, i / 16384).max(1),
+            );
+        }
+    }
+
+    #[test]
+    fn i128_matches_sign_rules() {
+        let mut state = 0x6b65_726e_656c_3133;
+        for i in 0..1_000_000u64 {
+            let a = sweep128(&mut state, i) as i128;
+            let b = sweep128(&mut state, i / 128) as i128;
+            let d =
+                (sweep128(&mut state, i / 16384) as i128).max(1) * if i % 2 == 0 { 1 } else { -1 };
+            let negative = (a < 0) ^ (b < 0) ^ (d < 0) && a != 0 && b != 0;
+            let Some((q, r)) = oracle_u128(a.unsigned_abs(), b.unsigned_abs(), d.unsigned_abs())
+            else {
+                assert_eq!(rounded(a, b, d), [None; 3]);
+                continue;
+            };
+            let fit = |m: u128| -> Option<i128> {
+                if m <= i128::MAX as u128 {
+                    Some(if negative { -(m as i128) } else { m as i128 })
+                } else if negative && m == 1 << 127 {
+                    Some(i128::MIN)
+                } else {
+                    None
+                }
+            };
+            let up = q.checked_add(u128::from(r != 0));
+            let floor = if negative { up.and_then(fit) } else { fit(q) };
+            let ceil = if negative { fit(q) } else { up.and_then(fit) };
+            let nearest = q
+                .checked_add(u128::from(r >= d.unsigned_abs() - (d.unsigned_abs() >> 1)))
+                .and_then(fit);
+            assert_eq!(rounded(a, b, d), [floor, nearest, ceil], "{a} {b} {d}");
+        }
+    }
+
+    #[test]
+    fn signed_and_wide_division_match_the_operators() {
+        let mut state = 0x6469_765f_6b65_726e;
+        for i in 0..1_000_000u64 {
+            let a = sweep64(&mut state, i) as i64;
+            let d = (sweep64(&mut state, i / 64) as i64).max(1) * if i % 2 == 0 { 1 } else { -1 };
+            assert_eq!(super::div_i64(a, d), a / d, "{a} / {d}");
+            assert_eq!(
+                super::DivKernel::checked_div(a, d),
+                a.checked_div(d),
+                "{a} / {d}"
+            );
+            let a = sweep128(&mut state, i) as i128;
+            let d =
+                (sweep128(&mut state, i / 128) as i128).max(1) * if i % 2 == 0 { 1 } else { -1 };
+            assert_eq!(super::div_i128(a, d), a / d, "{a} / {d}");
+            assert_eq!(
+                super::DivKernel::checked_div(a, d),
+                a.checked_div(d),
+                "{a} / {d}"
+            );
+            let a = sweep128(&mut state, i);
+            let d = sweep128(&mut state, i / 128).max(1);
+            assert_eq!(super::div_u128(a, d), a / d, "{a} / {d}");
+            assert_eq!(
+                super::DivKernel::checked_div(a, d),
+                a.checked_div(d),
+                "{a} / {d}"
+            );
+        }
+        for a in [i64::MIN, i64::MIN + 1, -1, 0, 1, i64::MAX] {
+            for d in [i64::MIN, -1, 1, 2, i64::MAX] {
+                assert_eq!(
+                    super::DivKernel::checked_div(a, d),
+                    a.checked_div(d),
+                    "{a} / {d}"
+                );
+                if !(a == i64::MIN && d == -1) {
+                    assert_eq!(super::div_i64(a, d), a / d, "{a} / {d}");
+                }
+            }
+        }
+        assert_eq!(super::DivKernel::checked_div(i64::MIN, 0), None);
+        assert_eq!(super::DivKernel::checked_div(i128::MIN, -1), None);
+        assert_eq!(super::DivKernel::checked_div(1u128, 0), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn zero_denominator_panics_like_muldiv() {
+        let _ = 1u64.mul_div(1, 0, Round::Floor);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn knuth_corrections_at_32_bit_digits() {
+        for (forces, high, low, d) in [
+            ("estimate 2^32, one decrement",                           0x8000_0000_0000_0000, 0, 0x8000_0000_0000_0001),
+            ("product test decrements once",                           0x8000_0000,           0, 0x8000_0000_0000_0001),
+            ("two decrements, then the partial remainder overflows",   0x7fff_ffff_0000_0000, 0, 0x8000_0000_ffff_ffff),
+            ("estimate 2^32 + 1, two decrements, remainder overflows", 0x8000_0000_ffff_fffe, 0, 0x8000_0000_ffff_ffff),
+            ("two decrements after a one-bit normalization",           0x3fff_ffff_8000_0000, 0, 0x4000_0000_7fff_ffff),
+        ] {
+            let n = (u128::from(high) << 64) | u128::from(low);
+            let expected = ((n / u128::from(d)) as u64, (n % u128::from(d)) as u64);
+            assert_eq!(super::div_rem_128_by_64(high, low, d), expected, "{forces}");
+        }
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn knuth_corrections_at_64_bit_digits() {
+        for (forces, u3, u2, d) in [
+            ("estimate pinned at 2^64 - 1",                                0x8000_0000_0000_0000, 0,                     0x8000_0000_0000_0000_0000_0000_0000_0001),
+            ("pinned estimate, remainder overflows so the test is skipped", 0x8000_0000_0000_0000, 0xffff_ffff_ffff_fffe, 0x8000_0000_0000_0000_ffff_ffff_ffff_ffff),
+            ("product test decrements once",                               0,                     0x8000_0000_0000_0000, 0x8000_0000_0000_0000_0000_0000_0000_0001),
+            ("two decrements, then the remainder overflows",               0x7fff_ffff_ffff_ffff, 0,                     0x8000_0000_0000_0000_ffff_ffff_ffff_ffff),
+            ("two decrements after a one-bit normalization",               0x3fff_ffff_ffff_ffff, 0x8000_0000_0000_0000, 0x4000_0000_0000_0000_7fff_ffff_ffff_ffff),
+        ] {
+            let expected = oracle_div((u128::from(u3) << 64) | u128::from(u2), 0, d).unwrap();
+            assert_eq!(super::div_rem_256_by_128(u3, u2, 0, 0, d), expected, "{forces}");
+        }
+    }
+}
