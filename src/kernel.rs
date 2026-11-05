@@ -70,7 +70,7 @@ const MASK: u64 = u32::MAX as u64;
 /// From 32-bit partials because the native `u128` product lowers to a
 /// builtin call on SBF.
 #[inline(always)]
-fn widening_mul(a: u64, b: u64) -> (u64, u64) {
+pub(crate) const fn widening_mul(a: u64, b: u64) -> (u64, u64) {
     let (a_high, a_low) = (a >> 32, a & MASK);
     let (b_high, b_low) = (b >> 32, b & MASK);
     let low_low = a_low * b_low;

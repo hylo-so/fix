@@ -80,6 +80,7 @@ pub mod aliases;
 pub mod fix_value;
 mod kernel;
 pub mod prelude;
+mod transcendental;
 pub mod util;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
