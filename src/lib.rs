@@ -58,6 +58,46 @@
 //! assert_eq!(Mebi::new(3), Gibi::new(6) / Kibi::new(2));
 //! ```
 //!
+//! # Composing ln and exp
+//!
+//! `ln_*` and `exp_*` are correctly rounded at the exponent they run at;
+//! a formula that chains them is not. Each step adds up to half a unit at
+//! its exponent and the next step scales it: `exp` turns an absolute error
+//! in its argument into the same relative error of its result, and
+//! `u^p = exp(p ln u)` carries the error of `ln u` times `p` into the
+//! exponent. A composed result is off by about half a unit per step at the
+//! working exponent, times the amplification along the chain.
+//!
+//! So compute at a guard exponent with a few more digits than the result
+//! needs and land on the target in one rounding with
+//! [`checked_convert_round`](Fix::checked_convert_round) or
+//! `mul_div_round`. A rule of thumb for the guard is `target digits +
+//! log10(output magnitude * amplification) + 2`: an `N18` result near 1
+//! with amplification near 1 wants `N20` to `N21`. On `IFix128` the guard
+//! costs range: `N21` holds about `±1.7e17`, `N36` about `±170`. No guard
+//! makes the landed result correctly rounded in every case: a true value
+//! within the composed error of a target rounding boundary can still land
+//! on the other side, at a rate proportional to the composed error over
+//! one target unit.
+//!
+//! `u^(1 - t) / (r (t - 1))` with `u = 1.3`, `t = 1.5` and `r = 1.15`,
+//! computed at `N21` and landed on `N18`:
+//!
+//! ```
+//! use fix::prelude::*;
+//! use fix::typenum::{N18, N21};
+//! type W = IFix128<N21>;
+//! let one = W::new(1_000_000_000_000_000_000_000);
+//! let u = W::new(1_300_000_000_000_000_000_000);
+//! let t = W::new(1_500_000_000_000_000_000_000);
+//! let r = W::new(1_150_000_000_000_000_000_000);
+//! // u^(1 - t) is exp((1 - t) ln u).
+//! let power = u.ln_round().unwrap().mul_div_round(one - t, one).unwrap().exp_round().unwrap();
+//! let denominator = r.mul_div_round(t - one, one).unwrap();
+//! let c = power.mul_div_round(one, denominator).unwrap().checked_convert_round::<N18>().unwrap();
+//! assert_eq!(c, IFix128::<N18>::new(1_525_318_294_447_007_330));
+//! ```
+//!
 //! # `no_std`
 //!
 //! This crate is `no_std`.

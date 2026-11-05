@@ -260,6 +260,11 @@ macro_rules! impl_ln_exp {
         /// result is signed, so it comes back on the signed type of the
         /// same width and exponent. Beyond `N38`, where `10^E` does not
         /// fit `u128`, every call returns `None`.
+        ///
+        /// Cost on SBF: about 320 CU for a typical `IFix128<N18>` call and
+        /// 1,260 CU at `N36`. A result within `2^-145` of a rounding
+        /// boundary runs the table-free last tier, about 77,000 CU; budget
+        /// for that when the argument comes from a user.
         impl<U> Fix<$bits, U10, NInt<U>>
         where
             U: Unsigned + NonZero,
@@ -315,6 +320,11 @@ macro_rules! impl_ln_exp {
 
         /// Exponential, correctly rounded at this precision. Beyond `N38`,
         /// where `10^E` does not fit `u128`, every call returns `None`.
+        ///
+        /// Cost on SBF: about 470 CU for a typical `IFix128<N18>` call and
+        /// 1,400 CU at `N36`. A result within `2^-144` relative of a
+        /// rounding boundary runs the table-free last tier, about 77,000
+        /// CU; budget for that when the argument comes from a user.
         impl<U> Fix<$bits, U10, NInt<U>>
         where
             U: Unsigned + NonZero,
