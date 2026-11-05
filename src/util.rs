@@ -2,6 +2,7 @@ use paste::paste;
 #[cfg(feature = "typed-floats")]
 use typed_floats::StrictlyPositiveFinite;
 
+use crate::kernel::MulDivKernel;
 use crate::muldiv::MulDiv;
 use crate::num_traits::{float::FloatCore, ConstZero};
 use crate::typenum::{Integer, NInt, NonZero, Unsigned, U10};
@@ -118,6 +119,29 @@ impl<Exp: Integer> Fix<u64, U10, Exp> {
     #[must_use]
     pub fn to_positive_f64(self) -> Option<StrictlyPositiveFinite> {
         StrictlyPositiveFinite::try_from(self.to_f64()).ok()
+    }
+}
+
+impl<Bits, Exp> Fix<Bits, U10, Exp>
+where
+    Self: FixExt,
+    Bits: MulDivKernel,
+{
+    /// Converts to another _Exp_ rounding to nearest, returning `None` on
+    /// overflow: the way to round a wider intermediate once at the end.
+    ///
+    /// ```
+    /// use fix::prelude::*;
+    /// use fix::typenum::{N18, N36};
+    /// let source = IFix128::<N36>::new(1_234_567_890_123_456_789_500_000_000_000_000_000i128);
+    /// let target = source.checked_convert_round::<N18>();
+    /// assert_eq!(target, Some(IFix128::<N18>::new(1_234_567_890_123_456_790i128)));
+    /// ```
+    pub fn checked_convert_round<ToExp>(self) -> Option<Fix<Bits, U10, ToExp>>
+    where
+        Fix<Bits, U10, ToExp>: FixExt,
+    {
+        Fix::<Bits, U10, ToExp>::one().mul_div_round(self, Self::one())
     }
 }
 
