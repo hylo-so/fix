@@ -58,6 +58,46 @@
 //! assert_eq!(Mebi::new(3), Gibi::new(6) / Kibi::new(2));
 //! ```
 //!
+//! # Composing ln and exp
+//!
+//! `ln_*` and `exp_*` are correctly rounded at the exponent they run at;
+//! a formula that chains them is not. Each step adds up to half a unit at
+//! its exponent and the next step scales it: `exp` turns an absolute error
+//! in its argument into the same relative error of its result, and
+//! `u^p = exp(p ln u)` carries the error of `ln u` times `p` into the
+//! exponent. A composed result is off by about half a unit per step at the
+//! working exponent, times the amplification along the chain.
+//!
+//! So compute at a guard exponent with a few more digits than the result
+//! needs and land on the target in one rounding with
+//! [`checked_convert_round`](Fix::checked_convert_round) or
+//! `mul_div_round`. A rule of thumb for the guard is `target digits +
+//! log10(output magnitude * amplification) + 2`: an `N18` result near 1
+//! with amplification near 1 wants `N20` to `N21`. On `IFix128` the guard
+//! costs range: `N21` holds about `±1.7e17`, `N36` about `±170`. No guard
+//! makes the landed result correctly rounded in every case: a true value
+//! within the composed error of a target rounding boundary can still land
+//! on the other side, at a rate proportional to the composed error over
+//! one target unit.
+//!
+//! `u^(1 - t) / (r (t - 1))` with `u = 1.3`, `t = 1.5` and `r = 1.15`,
+//! computed at `N21` and landed on `N18`:
+//!
+//! ```
+//! use fix::prelude::*;
+//! use fix::typenum::{N18, N21};
+//! type W = IFix128<N21>;
+//! let one = W::new(1_000_000_000_000_000_000_000);
+//! let u = W::new(1_300_000_000_000_000_000_000);
+//! let t = W::new(1_500_000_000_000_000_000_000);
+//! let r = W::new(1_150_000_000_000_000_000_000);
+//! // u^(1 - t) is exp((1 - t) ln u).
+//! let power = u.ln_round().unwrap().mul_div_round(one - t, one).unwrap().exp_round().unwrap();
+//! let denominator = r.mul_div_round(t - one, one).unwrap();
+//! let c = power.mul_div_round(one, denominator).unwrap().checked_convert_round::<N18>().unwrap();
+//! assert_eq!(c, IFix128::<N18>::new(1_525_318_294_447_007_330));
+//! ```
+//!
 //! # `no_std`
 //!
 //! This crate is `no_std`.
@@ -78,7 +118,9 @@ pub extern crate typenum;
 
 pub mod aliases;
 pub mod fix_value;
+mod kernel;
 pub mod prelude;
+mod transcendental;
 pub mod util;
 
 use core::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
@@ -90,6 +132,7 @@ use core::marker::PhantomData;
 use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
+use kernel::{DivKernel, MulDivKernel, Round};
 use muldiv::MulDiv;
 use num_traits::{
     CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, ConstZero, SaturatingAdd, SaturatingSub,
@@ -189,12 +232,10 @@ impl<Bits, Base, Exp> Fix<Bits, Base, Exp> {
 
         // FIXME: Would like to do this with typenum::Pow, but that
         // seems to result in overflow evaluating requirements.
-        let ratio = base.pow(diff.unsigned_abs());
-
         if inverse {
-            Fix::new(self.bits / ratio)
+            Fix::new(self.bits.div_pow(base, diff.unsigned_abs()))
         } else {
-            Fix::new(self.bits * ratio)
+            Fix::new(self.bits * base.pow(diff.unsigned_abs()))
         }
     }
 
@@ -280,15 +321,34 @@ pub trait Pow {
     /// Raises `self` to the power of `exp`.
     #[must_use]
     fn pow(self, exp: u32) -> Self;
+
+    /// `self / base.pow(exp)`, the downward scale change in [`Fix::convert`].
+    /// Signed and `u128` division are library calls on Solana's SBF target,
+    /// so those widths override this with a division in native instructions.
+    #[doc(hidden)]
+    #[must_use]
+    fn div_pow(self, base: Self, exp: u32) -> Self
+    where
+        Self: Sized + Div<Output = Self>,
+    {
+        self / base.pow(exp)
+    }
 }
 
 macro_rules! impl_pow {
-    ($ty:ident) => {
+    ($ty:ident $(, $div:expr)?) => {
         impl Pow for $ty {
             #[inline]
             fn pow(self, exp: u32) -> Self {
                 self.pow(exp)
             }
+
+            $(
+                #[inline]
+                fn div_pow(self, base: Self, exp: u32) -> Self {
+                    $div(self, base.pow(exp))
+                }
+            )?
         }
     };
 }
@@ -297,13 +357,13 @@ impl_pow!(u8);
 impl_pow!(u16);
 impl_pow!(u32);
 impl_pow!(u64);
-impl_pow!(u128);
+impl_pow!(u128, kernel::div_u128);
 impl_pow!(usize);
 impl_pow!(i8);
 impl_pow!(i16);
 impl_pow!(i32);
-impl_pow!(i64);
-impl_pow!(i128);
+impl_pow!(i64, kernel::div_i64);
+impl_pow!(i128, kernel::div_i128);
 impl_pow!(isize);
 
 // The usual traits.
@@ -666,6 +726,67 @@ where
     }
 }
 
+/// [`MulDiv`] through the crate's own kernel, which runs in native
+/// instructions on Solana's SBF target where `muldiv`'s `u128` arithmetic
+/// is synthesized in software. Inherent so concrete callers pick it up
+/// unchanged; the `MulDiv` impl for `Fix` still serves generic code.
+impl<Bits, Base, LExp> Fix<Bits, Base, LExp>
+where
+    Bits: MulDivKernel,
+{
+    /// `floor(self * num / denom)`; see [`MulDiv::mul_div_floor`].
+    pub fn mul_div_floor<RExp>(
+        self,
+        num: Fix<Bits, Base, RExp>,
+        denom: Fix<Bits, Base, RExp>,
+    ) -> Option<Self> {
+        self.bits
+            .mul_div(num.bits, denom.bits, Round::Floor)
+            .map(Self::new)
+    }
+
+    /// `round(self * num / denom)`; see [`MulDiv::mul_div_round`].
+    pub fn mul_div_round<RExp>(
+        self,
+        num: Fix<Bits, Base, RExp>,
+        denom: Fix<Bits, Base, RExp>,
+    ) -> Option<Self> {
+        self.bits
+            .mul_div(num.bits, denom.bits, Round::Nearest)
+            .map(Self::new)
+    }
+
+    /// `ceil(self * num / denom)`; see [`MulDiv::mul_div_ceil`].
+    pub fn mul_div_ceil<RExp>(
+        self,
+        num: Fix<Bits, Base, RExp>,
+        denom: Fix<Bits, Base, RExp>,
+    ) -> Option<Self> {
+        self.bits
+            .mul_div(num.bits, denom.bits, Round::Ceil)
+            .map(Self::new)
+    }
+}
+
+/// [`CheckedDivFix::checked_div`] through the crate's own kernel, for
+/// the same reason as the `mul_div` methods above.
+impl<Bits, Base, LExp> Fix<Bits, Base, LExp>
+where
+    Bits: DivKernel,
+{
+    /// `self / v` rounding toward zero; see [`CheckedDivFix::checked_div`].
+    pub fn checked_div<RExp>(
+        &self,
+        v: &Fix<Bits, Base, RExp>,
+    ) -> Option<Fix<Bits, Base, Diff<LExp, RExp>>>
+    where
+        Bits: Copy,
+        LExp: Sub<RExp>,
+    {
+        self.bits.checked_div(v.bits).map(Fix::new)
+    }
+}
+
 // Saturating arithmetic.
 
 impl<Bits, Base, Exp> SaturatingAdd for Fix<Bits, Base, Exp>
@@ -696,7 +817,7 @@ mod tests {
 
     use crate::aliases::decimal::{IFix64, UFix64};
     use crate::aliases::si::{Kilo, Micro, Milli, Nano, Unit};
-    use crate::{CheckedAdd, CheckedDivFix, CheckedMulFix, CheckedSub, MulDiv};
+    use crate::{CheckedAdd, CheckedMulFix, CheckedSub};
 
     #[test]
     fn convert_milli_to_kilo() {
